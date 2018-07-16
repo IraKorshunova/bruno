@@ -1,5 +1,3 @@
-from collections import namedtuple
-
 import numpy as np
 import tensorflow as tf
 
@@ -12,6 +10,7 @@ batch_size = 64
 sample_batch_size = 1
 n_samples = 4
 rng = np.random.RandomState(42)
+rng_test = np.random.RandomState(317070)
 seq_len = defaults.seq_len_mnist
 eps_corr = defaults.eps_corr
 mask_dims = defaults.mask_dims
@@ -21,8 +20,8 @@ weight_norm = False
 
 train_data_iter = data_iter.BaseExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size,
                                                     set='train', rng=rng)
-test_data_iter = data_iter.BaseExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size, set='test')
-
+test_data_iter = data_iter.BaseExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size, set='test',
+                                                   rng=rng_test)
 test_data_iter2 = data_iter.BaseTestBatchSeqDataIterator(seq_len=seq_len,
                                                          set='test',
                                                          rng=rng,
@@ -63,7 +62,7 @@ def build_model(x, init=False, sampling_mode=False):
 
     global student_layer
     if student_layer is None:
-        student_layer = nn_extra_gauss.GaussianRecurrentLayer(shape=(ndim,), corr_init=corr_init)
+        student_layer = nn_extra_gauss.GaussianRecurrentLayer(shape=(ndim,), corr_init=corr_init, learn_mu=False)
 
     x_shape = nn_extra_nvp.int_shape(x)
     x_bs = tf.reshape(x, (x_shape[0] * x_shape[1], x_shape[2], x_shape[3], x_shape[4]))
@@ -133,7 +132,7 @@ def build_model(x, init=False, sampling_mode=False):
     latent_log_probs = tf.stack(latent_log_probs, axis=1)
     latent_log_probs_prior = tf.stack(latent_log_probs_prior, axis=1)
 
-    return log_probs, latent_log_probs, latent_log_probs_prior
+    return log_probs, latent_log_probs, latent_log_probs_prior, z_vec
 
 
 def build_nvp_dense_model():

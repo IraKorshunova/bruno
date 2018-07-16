@@ -1,10 +1,12 @@
 import argparse
 import importlib
+import os
+
 import matplotlib
 import numpy as np
-import utils
-import os
 import tensorflow as tf
+
+import utils
 from config_rnn import defaults
 
 matplotlib.use('Agg')
@@ -30,10 +32,9 @@ def plot_anomaly(config_name, n_sequences):
     data_iter = config.test_data_iter
     data_iter.batch_size = 1
 
-    # phase: trainig/testing
-    training_phase = tf.placeholder(tf.bool, name='phase')
     x_in = tf.placeholder(tf.float32, shape=(data_iter.batch_size,) + config.obs_shape)
-    latent_log_probs, log_probs_prior = model(x_in, training_phase, return_latent_probs=True)
+    model_output = model(x_in)
+    latent_log_probs, latent_log_probs_prior = model_output[1], model_output[2]
 
     saver = tf.train.Saver()
 
@@ -47,7 +48,7 @@ def plot_anomaly(config_name, n_sequences):
             assert x_batch.shape[0] == data_iter.batch_size
             assert data_iter.batch_size == 1
 
-            lp, lpp = sess.run([latent_log_probs, log_probs_prior], feed_dict={x_in: x_batch, training_phase: 0})
+            lp, lpp = sess.run([latent_log_probs, latent_log_probs_prior], feed_dict={x_in: x_batch})
             lp = np.squeeze(lp)
             lpp = np.squeeze(lpp)
             scores = []
@@ -95,6 +96,7 @@ def plot_anomaly(config_name, n_sequences):
                             bbox_inches='tight', dpi=600, pad_inches=0)
 
 
+# -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
 parser.add_argument('--config_name', type=str, required=True, help='name of the configuration')
 parser.add_argument('--seq_len', type=int, default=100, help='sequence length')
@@ -103,8 +105,9 @@ parser.add_argument('--eval_only_last', type=int, default=0, help='evaluate only
 parser.add_argument('--mask_dims', type=int, default=0, help='keep the dimensions with correlation > eps_corr')
 parser.add_argument('--eps_corr', type=float, default=0., help='minimum correlation')
 
-args = parser.parse_args()
+args, _ = parser.parse_known_args()
 defaults.set_parameters(args)
 print(args)
+# -----------------------------------------------------------------------------
 
 plot_anomaly(args.config_name, args.n_sequences)

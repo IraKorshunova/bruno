@@ -5,6 +5,8 @@ import data_iter
 import nn_extra_nvp
 import nn_extra_student
 from config_rnn import defaults
+from tensorflow.contrib.framework.python.ops import arg_scope
+
 
 batch_size = 64
 sample_batch_size = 1
@@ -16,7 +18,7 @@ eps_corr = defaults.eps_corr
 mask_dims = defaults.mask_dims
 
 nonlinearity = tf.nn.elu
-weight_norm = False
+weight_norm = True
 
 train_data_iter = data_iter.BaseExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size,
                                                     set='train', rng=rng,
@@ -58,8 +60,9 @@ student_layer = None
 
 def build_model(x, init=False, sampling_mode=False):
     global nvp_dense_layers
-    if len(nvp_dense_layers) == 0:
-        build_nvp_dense_model()
+    with arg_scope([nn_extra_nvp.conv2d_wn, nn_extra_nvp.dense_wn], init=init):
+        if len(nvp_dense_layers) == 0:
+            build_nvp_dense_model()
 
     global student_layer
     if student_layer is None:

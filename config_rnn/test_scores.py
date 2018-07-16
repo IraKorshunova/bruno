@@ -1,11 +1,12 @@
+import argparse
+import importlib
 import os
 import time
-import json
-import argparse
+
 import numpy as np
 import tensorflow as tf
+
 import utils
-import importlib
 from config_rnn import defaults
 
 # -----------------------------------------------------------------------------
@@ -13,15 +14,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--config_name', type=str, default='nvp_1', help='Configuration name')
 parser.add_argument('--mask_dims', type=int, default=0, help='keep the dimensions with correlation > eps_corr?')
 parser.add_argument('--eps_corr', type=float, default=0., help='minimum correlation')
-args = parser.parse_args()
-print('input args:\n', json.dumps(vars(args), indent=4, separators=(',', ':')))  # pretty print args
-
-args = parser.parse_args()
+args, _ = parser.parse_known_args()
 defaults.set_parameters(args)
 print(args)
-
 # -----------------------------------------------------------------------------
-# fix random seed for reproducibility
 rng = np.random.RandomState(42)
 tf.set_random_seed(42)
 
@@ -38,9 +34,9 @@ model = tf.make_template('model', config.build_model)
 all_params = tf.trainable_variables()
 
 # phase: training/testing
-training_phase = tf.placeholder(tf.bool, name='phase')
 x_in = tf.placeholder(tf.float32, shape=(1,) + config.obs_shape)
-log_probs, prior_log_probs = model(x_in, training_phase, return_prior=True)
+model_output = model(x_in)
+latent_log_probs, latent_log_probs_prior = model_output[1], model_output[2]
 
 saver = tf.train.Saver()
 
@@ -60,10 +56,10 @@ with tf.Session() as sess:
     scores = []
     prior_ll = []
     for _, x_batch in zip(batch_idxs, data_iter.generate()):
-        l, lp = sess.run([log_probs, prior_log_probs], feed_dict={x_in: x_batch, training_phase: 0})
-        scores.append(l - lp)
-        prior_ll.append(lp)
-        print(lp, l)
+        lp, lp_prior = sess.run([latent_log_probs, latent_log_probs_prior], feed_dict={x_in: x_batch})
+        scores.append(lp - lp_prior)
+        prior_ll.append(lp_prior)
+        print(lp_prior, lp)
         print('--------------------------')
 
     scores = np.stack(scores, axis=0)

@@ -11,5 +11,4 @@ class Logger(object):
         self.log.write(message)
 
     def flush(self):
-        # needed for python 3 compatibility
         pass

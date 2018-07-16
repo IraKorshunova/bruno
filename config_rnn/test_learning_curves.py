@@ -1,17 +1,13 @@
-"""
-Implementation of Real-NVP by Laurent Dinh (https://arxiv.org/abs/1605.08803)
-Code was started from the PixelCNN++ code (https://github.com/openai/pixel-cnn)
-"""
-
-import os
-import json
 import argparse
-import numpy as np
-import utils
 import importlib
-import matplotlib
+import json
+import os
 import pickle
-import tensorflow as tf
+
+import matplotlib
+import numpy as np
+
+import utils
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -19,7 +15,6 @@ from matplotlib import colors as mcolors
 
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
-# data I/O
 parser.add_argument('-c', '--config_name', type=str, default='nvp_1', help='Configuration name')
 parser.add_argument('-ds', '--data_set', type=str, default='omniglot', help='Dataset name')
 args = parser.parse_args()

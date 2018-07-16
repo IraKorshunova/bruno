@@ -1,21 +1,20 @@
-"""
-Compute predictive probabilities for every digit after seeing a sequence of some class
-"""
-import os
-import logger
-import sys
-import importlib
-import numpy as np
-import utils
-from collections import defaultdict
-import tensorflow as tf
-from config_rnn import defaults
 import argparse
+import importlib
+import os
+import sys
+from collections import defaultdict
+
+import numpy as np
+import tensorflow as tf
+
+import logger
+import utils
+from config_rnn import defaults
 
 np.set_printoptions(suppress=True)
 
 
-def classify(config_name, seq_len, n_trials, digit_classes, condition_on_train, logging):
+def classify(config_name, seq_len, n_trials, digit_classes, condition_on_train):
     configs_dir = __file__.split('/')[-2]
     config = importlib.import_module('%s.%s' % (configs_dir, config_name))
 
@@ -24,24 +23,23 @@ def classify(config_name, seq_len, n_trials, digit_classes, condition_on_train, 
     expid = os.path.dirname(save_dir).split('/')[-1]
 
     assert seq_len == config.seq_len
-    # logs
-    if logging:
-        utils.autodir('logs')
-        sys.stdout = logger.Logger(
-            'logs/%s_test_class_%s_%s%s.log' % (expid, n_trials, config.seq_len,
-                                                '_ontrain' if condition_on_train else ''))
-        sys.stderr = sys.stdout
+
+    utils.autodir('logs')
+    sys.stdout = logger.Logger(
+        'logs/%s_test_class_%s_%s%s.log' % (expid, n_trials, config.seq_len,
+                                            '_ontrain' if condition_on_train else ''))
+    sys.stderr = sys.stdout
 
     print('Building the model', expid)
     model = tf.make_template('model', config.build_model)
 
     data_iter = config.test_data_iter2
     data_iter.digits = digit_classes if digit_classes is not None else data_iter.digits
+    print(data_iter.batch_size)
+    print(data_iter.digits)
 
-    # phase: trainig/testing
-    training_phase = tf.placeholder(tf.bool, name='phase')
     x_in = tf.placeholder(tf.float32, shape=(data_iter.batch_size,) + config.obs_shape)
-    log_probs = model(x_in, training_phase)
+    log_probs = model(x_in)[0]
 
     saver = tf.train.Saver()
 
@@ -57,17 +55,16 @@ def classify(config_name, seq_len, n_trials, digit_classes, condition_on_train, 
             generator = data_iter.generate(n_random_samples=1, trial=trial,
                                            condition_on_train=condition_on_train)
 
-            cm = np.zeros((data_iter.n_classes, data_iter.n_classes))
+            cm = np.zeros((10, 10))
 
             x_number2scores = defaultdict(list)
             x_number2y = {}
             for iteration, (x_batch, y_batch, x_number) in enumerate(generator):
                 y_true = int(y_batch[0, -1])
 
-                log_p = sess.run(log_probs, feed_dict={x_in: x_batch, training_phase: 0})
+                log_p = sess.run(log_probs, feed_dict={x_in: x_batch})
 
                 log_p = log_p.reshape((data_iter.batch_size, config.seq_len))[:, -1]
-                # print(log_p)
 
                 x_number2scores[x_number].append(log_p)
                 x_number2y[x_number] = y_true
@@ -90,29 +87,27 @@ def classify(config_name, seq_len, n_trials, digit_classes, condition_on_train, 
         print('---------------------------------------------')
         print(n_trials, config.seq_len)
         print(trial_accuracies)
-        print ('average accuracy over trials', np.mean(trial_accuracies))
-        print ('std accuracy over trials', np.std(trial_accuracies))
+        print('average accuracy over trials', np.mean(trial_accuracies))
+        print('std accuracy over trials', np.std(trial_accuracies))
 
 
+# -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
 parser.add_argument('--config_name', type=str, required=True, help='name of the configuration')
 parser.add_argument('--seq_len', type=int, default=2, help='sequence length = number of shots + 1')
 parser.add_argument('--n_trials', type=int, default=100, help='number of trials')
-parser.add_argument('--digit_classes', type=list, default=range(10), nargs='+', help='digits to test')
-parser.add_argument('--eval_only_last', type=int, default=1, help='evaluate only p(last|all prev) for speed')
-parser.add_argument('--mask_dims', type=int, default=1, help='keep the dimensions with correlation > eps_corr')
-parser.add_argument('--eps_corr', type=float, default=0.01, help='minimum correlation')
-parser.add_argument('--logging', type=int, default=1, help='keep the log')
+parser.add_argument('--digit_classes', type=list, default=[1, 3, 5, 7, 9], nargs='+', help='digits to test')
+parser.add_argument('--mask_dims', type=int, default=0, help='keep the dimensions with correlation > eps_corr')
+parser.add_argument('--eps_corr', type=float, default=0., help='minimum correlation')
 parser.add_argument('--condition_on_train', type=int, default=1,
                     help='use images from the train subset (not used for training anyway)')
-
-args = parser.parse_args()
+args, _ = parser.parse_known_args()
 defaults.set_parameters(args)
 print(args)
+# -----------------------------------------------------------------------------
 
 classify(config_name=args.config_name,
          seq_len=args.seq_len,
          n_trials=args.n_trials,
          digit_classes=args.digit_classes,
-         condition_on_train=bool(args.condition_on_train),
-         logging=bool(args.logging))
+         condition_on_train=bool(args.condition_on_train))

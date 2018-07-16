@@ -1,8 +1,3 @@
-"""
-Implementation of Real-NVP by Laurent Dinh (https://arxiv.org/abs/1605.08803)
-Code was started from the PixelCNN++ code (https://github.com/openai/pixel-cnn)
-"""
-
 import argparse
 import importlib
 import json
@@ -23,15 +18,12 @@ my_dpi = 96
 
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
-# data I/O
 parser.add_argument('-c', '--config_name', type=str, default='nvp_1', help='Configuration name')
 parser.add_argument('-s', '--set', type=str, default='test', help='Test or train part')
 parser.add_argument('-same', '--same_image', type=int, default=0, help='Same image as inputl')
-args, unknown = parser.parse_known_args()
+args, _ = parser.parse_known_args()
 print('input args:\n', json.dumps(vars(args), indent=4, separators=(',', ':')))  # pretty print args
-
 # -----------------------------------------------------------------------------
-# fix random seed for reproducibility
 rng = np.random.RandomState(42)
 tf.set_random_seed(42)
 
@@ -40,7 +32,6 @@ configs_dir = __file__.split('/')[-2]
 config = importlib.import_module('%s.%s' % (configs_dir, args.config_name))
 
 save_dir = utils.find_model_metadata('metadata/', args.config_name)
-# save_dir = '/mnt/storage/users/ikorshun/exch-rnn-tf/metadata/bruno_omniglot_gp-2018_06_06/'
 experiment_id = os.path.dirname(save_dir)
 
 if not os.path.isdir(save_dir + '/samples'):
@@ -53,10 +44,8 @@ print('exp_id', experiment_id)
 model = tf.make_template('model', config.build_model, sampling_mode=True)
 all_params = tf.trainable_variables()
 
-# phase: trainig/testing
-training_phase = tf.placeholder(tf.bool, name='phase')
 x_in = tf.placeholder(tf.float32, shape=(config.sample_batch_size,) + config.obs_shape)
-samples = model(x_in, training_phase)
+samples = model(x_in, sampling_mode=True)
 
 saver = tf.train.Saver()
 
@@ -70,14 +59,13 @@ else:
 with tf.Session() as sess:
     begin = time.time()
     ckpt_file = save_dir + 'params.ckpt'
-    # print_tensors_in_checkpoint_file(file_name=ckpt_file, tensor_name='', all_tensors=False, all_tensor_names=True)
     print('restoring parameters from', ckpt_file)
     saver.restore(sess, tf.train.latest_checkpoint(save_dir))
 
     generator = data_iter.generate_each_digit(same_image=args.same_image)
     for i, (x_batch, y_batch) in enumerate(generator):
         print("Generating samples...")
-        feed_dict = {x_in: x_batch, training_phase: 0}
+        feed_dict = {x_in: x_batch}
         sampled_xx = sess.run(samples, feed_dict)
         img_dim = config.obs_shape[1]
         n_channels = config.obs_shape[-1]

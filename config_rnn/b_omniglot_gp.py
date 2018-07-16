@@ -11,7 +11,7 @@ batch_size = 32
 sample_batch_size = 1
 n_samples = 4
 rng = np.random.RandomState(42)
-seq_len = defaults.seq_len  # 20
+seq_len = defaults.seq_len
 eps_corr = defaults.eps_corr
 mask_dims = defaults.mask_dims
 
@@ -85,6 +85,8 @@ def build_model(x, init=False, sampling_mode=False):
 
     log_probs = []
     z_samples = []
+    latent_log_probs = []
+    latent_log_probs_prior = []
 
     if mask_dims:
         mask_dim = tf.greater(student_layer.corr, tf.ones_like(student_layer.corr) * eps_corr)
@@ -100,8 +102,13 @@ def build_model(x, init=False, sampling_mode=False):
                 z_samples.append(z_sample)
             else:
                 latent_log_prob = student_layer.get_log_likelihood(z_vec[:, i, :], mask_dim=mask_dim)
+                latent_log_probs.append(latent_log_prob)
+
                 log_prob = latent_log_prob + log_det_jac[:, i]
                 log_probs.append(log_prob)
+
+                latent_log_prob_prior = student_layer.get_log_likelihood_under_prior(z_vec[:, i, :], mask_dim=mask_dim)
+                latent_log_probs_prior.append(latent_log_prob_prior)
 
             student_layer.update_distribution(z_vec[:, i, :])
             scope.reuse_variables()
@@ -130,7 +137,10 @@ def build_model(x, init=False, sampling_mode=False):
         return x_samples
 
     log_probs = tf.stack(log_probs, axis=1)
-    return log_probs, None, None
+    latent_log_probs = tf.stack(latent_log_probs, axis=1)
+    latent_log_probs_prior = tf.stack(latent_log_probs_prior, axis=1)
+
+    return log_probs, latent_log_probs, latent_log_probs_prior
 
 
 def build_nvp_model():

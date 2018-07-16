@@ -6,11 +6,9 @@ import sys
 import tarfile
 
 import numpy as np
+import scipy.misc
 from six.moves import urllib
 
-
-# from skimage.io import imread
-# from scipy.misc import imresize
 
 def autodir(path):
     if not os.path.isdir(path):
@@ -151,6 +149,9 @@ def process_omniglot_vinyals_split():
     """
     Dataset without rotations. Rotation will happen on-fly.
     """
+    # this import is here so that it doesn't interact with matplotlib imports in other modules
+    import skimage.io
+
     class_n = -1
 
     (_, _, y_str_train), (_, _, y_str_test) = load_omniglot_vinyals()
@@ -193,8 +194,8 @@ def process_omniglot_vinyals_split():
             if valid_set:
                 valid_classes.append(class_n)
             for i_path in img_paths:
-                img = 255 - imread(i_path)
-                img = imresize(img, (28, 28))
+                img = 255 - skimage.io.imread(i_path)
+                img = scipy.misc.imresize(img, (28, 28))
                 img = np.reshape(img, (784,))
                 if c_dir.replace('data/images_background/', '')[:-1] in y_str_train_new \
                         or c_dir.replace('data/images_evaluation/', '')[:-1] in y_str_train_new:
@@ -225,67 +226,6 @@ def process_omniglot_vinyals_split():
     np.save('data/omniglot_x_test', x_test)
     np.save('data/omniglot_y_test', y_test)
 
-# def omniglot_vinyals_split_valid_idxs():
-#     class_n = -1
-#
-#     (_, _, y_str_train), (_, _, y_str_test) = load_omniglot_vinyals()
-#     y_str_train_new, y_str_test_new = [], []
-#     for l in y_str_train:
-#         y_str_train_new.append(l[:-2].decode("utf-8"))
-#         print(y_str_train_new[-1])
-#     y_str_train_new = list(set(y_str_train_new))
-#     print(y_str_train_new)
-#     print(len(y_str_train_new))
-#
-#     for l in y_str_test:
-#         y_str_test_new.append(l[:-2].decode("utf-8"))
-#     y_str_test_new = list(set(y_str_test_new))
-#     print(y_str_test_new)
-#     print(len(y_str_test_new))
-#
-#     images_dirpath_train = 'data/images_background/'
-#     images_dirpath_test = 'data/images_evaluation/'
-#
-#     alphabets_dirs = glob.glob(images_dirpath_train + '/*/')
-#     alphabets_dirs_test = glob.glob(images_dirpath_test + '/*/')
-#     alphabets_dirs.extend(alphabets_dirs_test)
-#
-#     valid_alphabets = ['/Armenian/', '/Bengali/', '/Early_Aramaic/', '/Hebrew/', '/Mkhedruli_(Georgian)/']
-#     valid_classes = []
-#     for a_dir in alphabets_dirs:
-#         valid_set = True if any([a in a_dir for a in valid_alphabets]) else False
-#         if valid_set:
-#             print('VALIDATION')
-#             print('-----', a_dir)
-#
-#         chars_dirs = glob.glob(a_dir + '/*/')
-#         classes_nums = []
-#         test = False
-#         for c_dir in chars_dirs:
-#             class_n += 1
-#             if c_dir.replace('data/images_background/', '')[:-1] in y_str_train_new \
-#                     or c_dir.replace('data/images_evaluation/', '')[:-1] in y_str_train_new:
-#                 test = False
-#                 classes_nums.append(class_n)
-#             else:
-#                 test = True
-#                 classes_nums.append(class_n)
-#             if valid_set:
-#                 valid_classes.append(class_n)
-#         print(test, classes_nums)
-#     print(valid_classes)
-#     print(len(valid_classes))
-#     valid_classes = np.asarray(valid_classes)
-#     np.save('data/omniglot_valid_classes', valid_classes)
-#
-#
-# if __name__ == '__main__':
-#     #     (x_train, y_train, _), (x_test, y_test, _) = load_omniglot_vinyals()
-#     #     print(x_train.shape, y_train.shape)
-#     #     print(len(np.unique(y_train)))
-#     #     print(x_test.shape, y_test.shape)
-#     #     print(len(np.unique(y_test)))
-#     #     print(np.max(x_train), np.min(x_train))
-#     #     print(np.max(x_test), np.min(x_test))
-#     #     process_omniglot_custom_split()
-#     omniglot_vinyals_split_valid_idxs()
+
+if __name__ == '__main__':
+    process_omniglot_vinyals_split()

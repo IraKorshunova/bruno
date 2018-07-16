@@ -1,8 +1,3 @@
-"""
-Implementation of Real-NVP by Laurent Dinh (https://arxiv.org/abs/1605.08803)
-Code was started from the PixelCNN++ code (https://github.com/openai/pixel-cnn)
-"""
-
 import argparse
 import importlib
 import json
@@ -19,7 +14,6 @@ import utils
 
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
-# data I/O
 parser.add_argument('-c', '--config_name', type=str, required=True, help='Configuration name')
 parser.add_argument('-g', '--nr_gpu', type=int, default=1, help='How many GPUs to distribute the training across?')
 parser.add_argument('-r', '--resume', type=int, default=0, help='Resume training from a checkpoint?')
@@ -66,12 +60,7 @@ model = tf.make_template('model', config.build_model)
 x_init = tf.placeholder(tf.float32, shape=(config.batch_size,) + config.obs_shape)
 init_pass = model(x_init, init=True)
 
-# get loss gradients over multiple GPUs
-xs = []
-grads = []
-train_losses = []
 all_params = tf.trainable_variables()
-
 n_parameters = 0
 for variable in all_params:
     shape = variable.get_shape()
@@ -80,6 +69,11 @@ for variable in all_params:
         variable_parameters *= dim.value
     n_parameters += variable_parameters
 print('Number of parameters', n_parameters)
+
+# get loss gradients over multiple GPUs
+xs = []
+grads = []
+train_losses = []
 
 # evaluation in case we want to validate
 x_in_eval = tf.placeholder(tf.float32, shape=(config.batch_size,) + config.obs_shape)
@@ -97,7 +91,6 @@ for i in range(args.nr_gpu):
                 grads.append(tf.gradients(train_losses[i], all_params))
 
 # add gradients together and get training updates
-student_params = ['prior_nu', 'prior_mean', 'prior_var', 'prior_corr']
 tf_lr = tf.placeholder(tf.float32, shape=[])
 tf_student_grad_scale = tf.placeholder(tf.float32, shape=[])
 with tf.device('/gpu:0'):
@@ -112,6 +105,7 @@ with tf.device('/gpu:0'):
         grads[0][j] /= args.nr_gpu
 
     # scale gradients of student_params
+    student_params = ['prior_nu', 'prior_mean', 'prior_var', 'prior_corr']
     for j in range(len(grads[0])):
         if any(name in all_params[j].name for name in student_params):
             grads[0][j] *= tf_student_grad_scale
@@ -129,7 +123,7 @@ with tf.device('/gpu:0'):
             print('using rmsprop')
             train_step = tf.train.RMSPropOptimizer(learning_rate=tf_lr).apply_gradients(
                 grads_and_vars=grads_and_vars,
-                global_step=None, name='nestrov_momentum')
+                global_step=None, name='rmsprop')
         else:
             print('using adam')
             train_step = tf.train.AdamOptimizer(learning_rate=tf_lr, beta1=0.95, beta2=0.9995).apply_gradients(

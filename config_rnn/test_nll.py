@@ -1,25 +1,20 @@
-"""
-Implementation of Real-NVP by Laurent Dinh (https://arxiv.org/abs/1605.08803)
-Code was started from the PixelCNN++ code (https://github.com/openai/pixel-cnn)
-"""
-
+import argparse
+import importlib
+import json
 import os
 import time
-import json
-import argparse
+
 import numpy as np
 import tensorflow as tf
+
 import utils
-import importlib
 
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
-parser.add_argument('-c', '--config_name', type=str, default='nvp_1', help='Configuration name')
-args = parser.parse_args()
-print('input args:\n', json.dumps(vars(args), indent=4, separators=(',', ':')))  # pretty print args
-
+parser.add_argument('-c', '--config_name', type=str, required=True, help='Configuration name')
+args, _ = parser.parse_known_args()
+print('input args:\n', json.dumps(vars(args), indent=4, separators=(',', ':')))
 # -----------------------------------------------------------------------------
-# fix random seed for reproducibility
 rng = np.random.RandomState(42)
 tf.set_random_seed(42)
 
@@ -35,10 +30,8 @@ print('exp_id', experiment_id)
 model = tf.make_template('model', config.build_model)
 all_params = tf.trainable_variables()
 
-# phase: trainig/testing
-training_phase = tf.placeholder(tf.bool, name='phase')
 x_in = tf.placeholder(tf.float32, shape=(1,) + config.obs_shape)
-log_probs = model(x_in, training_phase)
+log_probs = model(x_in)[0]
 
 saver = tf.train.Saver()
 
@@ -57,10 +50,10 @@ with tf.Session() as sess:
 
     losses = []
     for _, x_batch in zip(batch_idxs, data_iter.generate()):
-        l = sess.run(log_probs, feed_dict={x_in: x_batch, training_phase: 0})
+        l = sess.run(log_probs, feed_dict={x_in: x_batch})
         losses.append(l)
     avg_loss = -1. * np.mean(losses)
-    bits_per_dim = avg_loss / np.log(2.) / 784
+    bits_per_dim = avg_loss / np.log(2.) / config.ndim
     print('Test Loss', avg_loss)
     print('Bits per dim', bits_per_dim)
 
@@ -70,9 +63,9 @@ with tf.Session() as sess:
 
     losses = []
     for _, x_batch in zip(batch_idxs, data_iter.generate()):
-        l = sess.run(log_probs, feed_dict={x_in: x_batch, training_phase: 0})
+        l = sess.run(log_probs, feed_dict={x_in: x_batch})
         losses.append(l)
     avg_loss = -1. * np.mean(losses)
-    bits_per_dim = avg_loss / np.log(2.) / 784
+    bits_per_dim = avg_loss / np.log(2.) / config.ndim
     print('Train Loss', avg_loss)
     print('Bits per dim', bits_per_dim)

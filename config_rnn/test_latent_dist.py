@@ -1,12 +1,14 @@
 import argparse
 import importlib
+import math
+import os
+
 import matplotlib
 import numpy as np
 import tensorflow as tf
-import multivariate_student
+
 import utils
 from config_rnn import defaults
-import os
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -16,11 +18,20 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--config_name', type=str, required=True, help='name of the configuration')
 parser.add_argument('--seq_len', type=int, default=2, help='sequence length')
 
-args = parser.parse_args()
+args, _ = parser.parse_known_args()
 defaults.set_parameters(args)
 print(args)
 gp_model = True if 'gp' in args.config_name else False
+
+
 # -----------------------------------------------------------------------------
+
+def student_pdf_1d(X, mu, var, nu):
+    num = math.gamma((1. + nu) / 2.) * pow(
+        1. + (1. / (nu - 2)) * (1. / var * (X - mu) ** 2), -(1. + nu) / 2.)
+    denom = math.gamma(nu / 2.) * pow((nu - 2) * math.pi * var, 0.5)
+    return num / denom
+
 
 np.random.seed(seed=42)
 
@@ -40,10 +51,9 @@ utils.autodir(target_path)
 model = tf.make_template('model', config.build_model, sampling_mode=False)
 all_params = tf.trainable_variables()
 
-training_phase = tf.placeholder(tf.bool, name='phase')
-batch_size = 100
+batch_size = 1000
 x_in = tf.placeholder(tf.float32, shape=(batch_size,) + config.obs_shape)
-z_codes = model(x_in, training_phase, return_z=True)
+z_codes = model(x_in)[3]
 
 saver = tf.train.Saver()
 with tf.Session() as sess:
@@ -63,14 +73,13 @@ with tf.Session() as sess:
 
     all_codes = None
     for _, x_batch in zip(batch_idxs, data_iter.generate()):
-        print('here!')
-        codes = sess.run(z_codes, feed_dict={x_in: x_batch, training_phase: 0})
+        codes = sess.run(z_codes, feed_dict={x_in: x_batch})
         print(codes.shape)
         all_codes = codes if all_codes is None else np.concatenate((codes, all_codes), axis=0)
         all_codes = all_codes[:, 0, :]  # take only fist element of each sequence
         print(all_codes.shape)
 
-    for i in xrange(all_codes.shape[-1]):
+    for i in range(all_codes.shape[-1]):
         plt.figure()
         plt.rc('xtick', labelsize=18)
         plt.rc('ytick', labelsize=18)
@@ -84,7 +93,7 @@ with tf.Session() as sess:
             x_lim = (mu[i] - 5 * np.sqrt(var[i]), mu[i] + 5 * np.sqrt(var[i]))
 
         x_range = np.linspace(x_lim[0], x_lim[1], 1000)
-        y = multivariate_student.multivariate_student.pdf_1d(x_range, mu[i], var[i], nu[i])
+        y = student_pdf_1d(x_range, mu[i], var[i], nu[i])
         plt.plot(x_range, y, 'black', label='theor', linewidth=2.5)
 
         if gp_model:

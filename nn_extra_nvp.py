@@ -140,7 +140,7 @@ class CouplingLayerConv(Layer):
             # masked half of x
             x1 = x * b
             l, m = self.function_s_t(x1, b)
-            y = x1 + tf.multiply(-b + 1.0, x * tf.exp(l) + m)
+            y = x1 + tf.multiply(1. - b, x * tf.exp(l) + m)
             log_det_jacobian = tf.reduce_sum(l, [1, 2, 3])
             sum_log_det_jacobians += log_det_jacobian
 
@@ -153,7 +153,7 @@ class CouplingLayerConv(Layer):
 
             y1 = y * b
             l, m = self.function_s_t(y1, b)
-            x = y1 + tf.multiply(y * (-b + 1.0) - m, tf.exp(-l))
+            x = y1 + tf.multiply(y * (1. - b) - m, tf.exp(-l))
             return x, z
 
 
