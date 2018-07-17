@@ -6,7 +6,7 @@ import sys
 import tarfile
 
 import numpy as np
-import scipy.misc
+# import scipy.misc
 from six.moves import urllib
 
 

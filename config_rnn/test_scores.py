@@ -33,7 +33,6 @@ print('exp_id', experiment_id)
 model = tf.make_template('model', config.build_model)
 all_params = tf.trainable_variables()
 
-# phase: training/testing
 x_in = tf.placeholder(tf.float32, shape=(1,) + config.obs_shape)
 model_output = model(x_in)
 latent_log_probs, latent_log_probs_prior = model_output[1], model_output[2]
@@ -59,13 +58,14 @@ with tf.Session() as sess:
         lp, lp_prior = sess.run([latent_log_probs, latent_log_probs_prior], feed_dict={x_in: x_batch})
         scores.append(lp - lp_prior)
         prior_ll.append(lp_prior)
-        print(lp_prior, lp)
+        print(scores[-1])
         print('--------------------------')
 
     scores = np.stack(scores, axis=0)
     print(scores.shape)
     scores_mean = np.mean(scores, axis=0)
     print(scores_mean)
+    print('log likelihood under the prior:')
     prior_ll_mean = np.mean(prior_ll)
-    print(prior_ll_mean)
-    print(-1. * prior_ll_mean / config.ndim / np.log(2.))
+    print('LL:', prior_ll_mean)
+    print('bits per dim:', -1. * prior_ll_mean / config.ndim / np.log(2.))

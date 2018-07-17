@@ -3,8 +3,8 @@ import tensorflow as tf
 from tensorflow.contrib.framework.python.ops import arg_scope
 
 import data_iter
+import nn_extra_gauss
 import nn_extra_nvp
-import nn_extra_student
 from config_rnn import defaults
 
 batch_size = 64
@@ -23,7 +23,6 @@ train_data_iter = data_iter.BaseExchSeqDataIterator(seq_len=seq_len, batch_size=
                                                     set='train', rng=rng)
 test_data_iter = data_iter.BaseExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size, set='test',
                                                    rng=rng_test)
-
 test_data_iter2 = data_iter.BaseTestBatchSeqDataIterator(seq_len=seq_len,
                                                          set='test',
                                                          rng=rng,
@@ -38,18 +37,19 @@ corr_init = np.ones((ndim,), dtype='float32') * 0.1
 max_iter = 200000
 save_every = 1000
 
-scale_student_grad = 0.1
+scale_student_grad = 0.
+student_grad_schedule = {0: 0., 100: 1.}
 
-learning_rate = 0.001
+learning_rate = 0.0005
 learning_rate_schedule = {
-    0: 1e-3,
-    25000: 5e-4,
-    50000: 2.5e-4,
-    75000: 1.25e-4,
-    100000: 0.625e-4,
-    125000: 0.3125e-4,
-    150000: 0.15625e-4,
-    175000: 0.078125e-4
+    0: 1e-3 / 2.,
+    25000: 5e-4 / 2.,
+    50000: 2.5e-4 / 2.,
+    75000: 1.25e-4 / 2.,
+    100000: 0.625e-4 / 2.,
+    125000: 0.3125e-4 / 2.,
+    150000: 0.15625e-4 / 2.,
+    175000: 0.078125e-4 / 2.
 }
 
 nvp_dense_layers = []
@@ -64,7 +64,7 @@ def build_model(x, init=False, sampling_mode=False):
 
         global student_layer
         if student_layer is None:
-            student_layer = nn_extra_student.StudentRecurrentLayer(shape=(ndim,), corr_init=corr_init, learn_mu=False)
+            student_layer = nn_extra_gauss.GaussianRecurrentLayer(shape=(ndim,), corr_init=corr_init, learn_mu=False)
 
         x_shape = nn_extra_nvp.int_shape(x)
         x_bs = tf.reshape(x, (x_shape[0] * x_shape[1], x_shape[2], x_shape[3], x_shape[4]))

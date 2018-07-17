@@ -60,10 +60,11 @@ with tf.Session() as sess:
     print('corr\n', corr)
     corr = corr.flatten()
 
+    print('******* corr - nu ********')
     for c, n in zip(corr[np.where(corr > 0.05)[0]], nu[np.where(corr > 0.05)[0]]):
         print(c, n)
+    print('--------------------------')
 
-    print(np.min(nu), corr[np.where(nu == np.min(nu))[0]])
     n_remained = []
     eps_range = []
     for t in np.arange(0, 0.9, 0.005):
@@ -77,13 +78,7 @@ with tf.Session() as sess:
                 eps_range.append(t)
         print(t, n_remained[-1])
 
-        # print np.where(corr > 0.2)
-        # print corr[np.where(corr > 0.2)[0]]
-        # print len(corr[np.where(corr > 0.2)[0]])
-
-    # samples
     target_path = save_dir
-
     fig = plt.figure(figsize=(4, 3))
     plt.grid(True, which="both", ls="-", linewidth='0.2')
     plt.plot(eps_range, n_remained, 'black', linewidth=1.)

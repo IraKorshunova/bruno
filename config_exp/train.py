@@ -76,8 +76,10 @@ train_losses = []
 
 # evaluation in case we want to validate
 x_in_eval = tf.placeholder(tf.float32, shape=(config.batch_size,) + config.obs_shape)
+tf_seq_len = tf.placeholder(tf.int32)
 log_probs = model(x_in_eval)[0]
-eval_loss = config.eval_loss(log_probs) if hasattr(config, 'eval_loss') else config.loss(log_probs)
+eval_loss = config.eval_loss(log_probs, tf_seq_len) if hasattr(config, 'eval_loss') else config.loss(log_probs,
+                                                                                                     tf_seq_len)
 
 for i in range(args.nr_gpu):
     xs.append(tf.placeholder(tf.float32, shape=(config.batch_size / args.nr_gpu,) + config.obs_shape))
@@ -86,7 +88,7 @@ for i in range(args.nr_gpu):
         with tf.variable_scope('gpu_%d' % i):
             with tf.variable_scope('train'):
                 log_probs = model(xs[i])[0]
-                train_losses.append(tf.check_numerics(config.loss(log_probs), 'loss has nans'))
+                train_losses.append(tf.check_numerics(config.loss(log_probs, tf_seq_len), 'loss has nans'))
                 grads.append(tf.gradients(train_losses[i], all_params))
 
 # add gradients together and get training updates
@@ -177,7 +179,8 @@ with tf.Session() as sess:
             sess.graph.finalize()
         else:
             xfs = np.split(x_batch, args.nr_gpu)
-            feed_dict = {tf_lr: lr, tf_student_grad_scale: student_grad_scale}
+            feed_dict = {tf_lr: lr, tf_student_grad_scale: student_grad_scale,
+                         tf_seq_len: config.rng.randint(config.min_seq_len, config.seq_len)}
             feed_dict.update({xs[i]: xfs[i] for i in range(args.nr_gpu)})
             l, _ = sess.run([train_loss, train_step], feed_dict)
             train_iter_losses.append(l)
@@ -198,7 +201,7 @@ with tf.Session() as sess:
                 rng = np.random.RandomState(42)
                 for _, x_valid_batch in zip(range(0, config.n_valid_batches),
                                             config.valid_data_iter.generate(rng)):
-                    feed_dict = {x_in_eval: x_valid_batch}
+                    feed_dict = {x_in_eval: x_valid_batch, tf_seq_len: config.seq_len}
                     l = sess.run([eval_loss], feed_dict)
                     losses.append(l)
                 avg_loss = np.mean(np.asarray(losses), axis=0)
@@ -209,7 +212,7 @@ with tf.Session() as sess:
                 rng = np.random.RandomState(42)
                 for _, x_valid_batch in zip(range(0, config.n_valid_batches),
                                             train_data_iter.generate(rng)):
-                    feed_dict = {x_in_eval: x_valid_batch}
+                    feed_dict = {x_in_eval: x_valid_batch, tf_seq_len: config.seq_len}
                     l = sess.run([eval_loss], feed_dict)
                     losses.append(l)
                 avg_loss = np.mean(np.asarray(losses), axis=0)

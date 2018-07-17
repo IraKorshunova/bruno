@@ -1,32 +1,23 @@
-"""
-Implementation of Real-NVP by Laurent Dinh (https://arxiv.org/abs/1605.08803)
-Code was started from the PixelCNN++ code (https://github.com/openai/pixel-cnn)
-"""
-
+import argparse
+import importlib
 import os
 import time
-import json
-import argparse
+
 import numpy as np
 import tensorflow as tf
+
 import utils
-import importlib
 from config_rnn import defaults
 
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--config_name', type=str, default='nvp_1', help='Configuration name')
-parser.add_argument('--mask_dims', type=int, default=0, help='keep the dimensions with correlation > eps_corr')
+parser.add_argument('--mask_dims', type=int, default=0, help='keep the dimensions with correlation > eps_corr?')
 parser.add_argument('--eps_corr', type=float, default=0., help='minimum correlation')
-args = parser.parse_args()
-print('input args:\n', json.dumps(vars(args), indent=4, separators=(',', ':')))  # pretty print args
-
-args = parser.parse_args()
+args, _ = parser.parse_known_args()
 defaults.set_parameters(args)
 print(args)
-
 # -----------------------------------------------------------------------------
-# fix random seed for reproducibility
 rng = np.random.RandomState(42)
 tf.set_random_seed(42)
 
@@ -42,10 +33,9 @@ print('exp_id', experiment_id)
 model = tf.make_template('model', config.build_model)
 all_params = tf.trainable_variables()
 
-# phase: trainig/testing
-training_phase = tf.placeholder(tf.bool, name='phase')
 x_in = tf.placeholder(tf.float32, shape=(1,) + config.obs_shape)
-log_probs, prior_log_probs = model(x_in, training_phase, return_prior=True)
+model_output = model(x_in)
+latent_log_probs, latent_log_probs_prior = model_output[1], model_output[2]
 
 saver = tf.train.Saver()
 
@@ -59,22 +49,23 @@ with tf.Session() as sess:
     batch_idxs = range(0, n_iter)
 
     # test
-    data_iter = config.test_data_iter
+    data_iter = config.train_data_iter
     data_iter.batch_size = 1
 
     scores = []
     prior_ll = []
-    for _, x_batch in zip(batch_idxs, data_iter.generate()):
-        l, lp = sess.run([log_probs, prior_log_probs], feed_dict={x_in: x_batch, training_phase: 0})
-        scores.append(l - lp)
-        prior_ll.append(lp)
-        print(lp, l)
+    for _, (x_batch, _) in zip(batch_idxs, data_iter.generate_each_digit(same_image=True)):
+        lp, lp_prior = sess.run([latent_log_probs, latent_log_probs_prior], feed_dict={x_in: x_batch})
+        scores.append(lp - lp_prior)
+        prior_ll.append(lp_prior)
+        print(scores[-1])
         print('--------------------------')
 
     scores = np.stack(scores, axis=0)
     print(scores.shape)
     scores_mean = np.mean(scores, axis=0)
     print(scores_mean)
+    print('log likelihood under the prior:')
     prior_ll_mean = np.mean(prior_ll)
-    print(prior_ll_mean)
-    print(-1. * prior_ll_mean / config.ndim / np.log(2.))
+    print('LL:', prior_ll_mean)
+    print('bits per dim:', -1. * prior_ll_mean / config.ndim / np.log(2.))

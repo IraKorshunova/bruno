@@ -1,21 +1,20 @@
-"""
-Compute predictive probabilities for every digit after seeing a sequence of some class
-"""
-import os
-import logger
-import sys
-import importlib
-import numpy as np
-import utils
-from collections import defaultdict
-import tensorflow as tf
-from config_rnn import defaults
 import argparse
+import importlib
+import os
+import sys
+from collections import defaultdict
+
+import numpy as np
+import tensorflow as tf
+
+import logger
+import utils
+from config_rnn import defaults
 
 np.set_printoptions(suppress=True)
 
 
-def classify(config_name, seq_len, n_trials, batch_size, condition_on_train, logging):
+def classify(config_name, seq_len, n_trials, batch_size):
     configs_dir = __file__.split('/')[-2]
     config = importlib.import_module('%s.%s' % (configs_dir, config_name))
 
@@ -24,12 +23,11 @@ def classify(config_name, seq_len, n_trials, batch_size, condition_on_train, log
     expid = os.path.dirname(save_dir).split('/')[-1]
 
     assert seq_len == config.seq_len
-    # logs
-    if logging:
-        utils.autodir('logs')
-        sys.stdout = logger.Logger(
-            'logs/%s_test_class_%s_%s_%s.log' % (expid, n_trials, config.seq_len, batch_size))
-        sys.stderr = sys.stdout
+
+    utils.autodir('logs')
+    sys.stdout = logger.Logger(
+        'logs/%s_test_class_%s_%s_%s.log' % (expid, n_trials, config.seq_len, batch_size))
+    sys.stderr = sys.stdout
 
     print('Building the model', expid)
     model = tf.make_template('model', config.build_model)
@@ -37,10 +35,8 @@ def classify(config_name, seq_len, n_trials, batch_size, condition_on_train, log
     data_iter = config.test_data_iter2
     data_iter.batch_size = batch_size
 
-    # phase: trainig/testing
-    training_phase = tf.placeholder(tf.bool, name='phase')
     x_in = tf.placeholder(tf.float32, shape=(data_iter.batch_size,) + config.obs_shape)
-    log_probs = model(x_in, training_phase)
+    log_probs = model(x_in)[0]
 
     saver = tf.train.Saver()
 
@@ -62,21 +58,14 @@ def classify(config_name, seq_len, n_trials, batch_size, condition_on_train, log
             x_number2true_y = {}
             x_number2ys = {}
             for iteration, (x_batch, y_batch, x_number) in enumerate(generator):
-                # print(iteration)
                 y_true = int(y_batch[0, -1])
 
-                log_p = sess.run(log_probs, feed_dict={x_in: x_batch, training_phase: 0})
-                # print(log_p)
-                # print(log_p.shape)
-                # print('----------------------')
+                log_p = sess.run(log_probs, feed_dict={x_in: x_batch})
                 if np.isnan(np.min(log_p)):
                     print(log_p, 'nans!')
                     sys.exit(0)
 
                 log_p = log_p.reshape((data_iter.batch_size, config.seq_len))[:, -1]
-                # print(y_true, y_batch[:, 0])
-                # print(np.argmax(log_p))
-                # print('---------------------')
 
                 x_number2scores[x_number].append(log_p)
                 x_number2true_y[x_number] = y_true
@@ -89,7 +78,6 @@ def classify(config_name, seq_len, n_trials, batch_size, condition_on_train, log
                 y_true = x_number2true_y[k]
                 avg_score = np.mean(np.asarray(v), axis=0)
                 max_idx = np.argmax(avg_score)
-                # print(y_true, avg_score, x_number2ys[k])
                 if x_number2ys[k][max_idx] == y_true:
                     n_correct += 1
                 n_total += 1
@@ -103,29 +91,25 @@ def classify(config_name, seq_len, n_trials, batch_size, condition_on_train, log
         print('---------------------------------------------')
         print(n_trials, config.seq_len)
         print(trial_accuracies)
-        print ('average accuracy over trials', np.mean(trial_accuracies))
-        print ('std accuracy over trials', np.std(trial_accuracies))
+        print('average accuracy over trials', np.mean(trial_accuracies))
+        print('std accuracy over trials', np.std(trial_accuracies))
 
 
+# -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
 parser.add_argument('--config_name', type=str, required=True, help='name of the configuration')
 parser.add_argument('--seq_len', type=int, default=2, help='sequence length = number of shots + 1')
-parser.add_argument('--n_trials', type=int, default=20, help='number of trials')
-parser.add_argument('--eval_only_last', type=int, default=1, help='evaluate only p(last|all prev) for speed')
-parser.add_argument('--mask_dims', type=int, default=1, help='keep the dimensions with correlation > eps_corr')
-parser.add_argument('--eps_corr', type=float, default=0.01, help='minimum correlation')
 parser.add_argument('--batch_size', type=int, default=5, help='batch_size = K-way')
-parser.add_argument('--logging', type=int, default=1, help='keep the log')
-parser.add_argument('--condition_on_train', type=int, default=1,
-                    help='use images from the train subset (not used for training anyway)')
+parser.add_argument('--n_trials', type=int, default=20, help='number of trials')
+parser.add_argument('--mask_dims', type=int, default=0, help='keep the dimensions with correlation > eps_corr')
+parser.add_argument('--eps_corr', type=float, default=0., help='minimum correlation')
 
-args = parser.parse_args()
+args, _ = parser.parse_known_args()
 defaults.set_parameters(args)
 print(args)
+# -----------------------------------------------------------------------------
 
 classify(config_name=args.config_name,
          seq_len=args.seq_len,
          n_trials=args.n_trials,
-         batch_size=args.batch_size,
-         condition_on_train=bool(args.condition_on_train),
-         logging=bool(args.logging))
+         batch_size=args.batch_size)
