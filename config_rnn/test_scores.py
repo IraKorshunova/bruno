@@ -3,15 +3,20 @@ import importlib
 import os
 import time
 
+import matplotlib
 import numpy as np
 import tensorflow as tf
 
 import utils
 from config_rnn import defaults
 
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--config_name', type=str, default='nvp_1', help='Configuration name')
+parser.add_argument('--seq_len', type=int, default=20, help='sequence length')
 parser.add_argument('--mask_dims', type=int, default=0, help='keep the dimensions with correlation > eps_corr?')
 parser.add_argument('--eps_corr', type=float, default=0., help='minimum correlation')
 args, _ = parser.parse_known_args()
@@ -33,7 +38,7 @@ print('exp_id', experiment_id)
 model = tf.make_template('model', config.build_model)
 all_params = tf.trainable_variables()
 
-x_in = tf.placeholder(tf.float32, shape=(1,) + config.obs_shape)
+x_in = tf.placeholder(tf.float32, shape=(config.seq_len,) + config.obs_shape)
 model_output = model(x_in)
 latent_log_probs, latent_log_probs_prior = model_output[1], model_output[2]
 
@@ -50,16 +55,14 @@ with tf.Session() as sess:
 
     # test
     data_iter = config.train_data_iter
-    data_iter.batch_size = 1
 
     scores = []
     prior_ll = []
-    for _, x_batch in zip(batch_idxs, data_iter.generate()):
+    for _, x_batch in zip(batch_idxs, data_iter.generate_diagonal_roll()):
         lp, lp_prior = sess.run([latent_log_probs, latent_log_probs_prior], feed_dict={x_in: x_batch})
-        scores.append(lp - lp_prior)
-        prior_ll.append(lp_prior)
-        print(scores[-1])
-        print('--------------------------')
+        score = np.diag(lp - lp_prior)
+        scores.append(score)
+        prior_ll.append(lp_prior[0])
 
     scores = np.stack(scores, axis=0)
     print(scores.shape)
@@ -69,3 +72,15 @@ with tf.Session() as sess:
     prior_ll_mean = np.mean(prior_ll)
     print('LL:', prior_ll_mean)
     print('bits per dim:', -1. * prior_ll_mean / config.ndim / np.log(2.))
+
+target_path = save_dir
+fig = plt.figure(figsize=(4, 3))
+plt.grid(True, which="both", ls="-", linewidth='0.2')
+plt.plot(range(len(scores_mean)), scores_mean, 'black', linewidth=1.)
+plt.scatter(range(len(scores_mean)), scores_mean, s=1.5, c='black')
+# plt.gca().set_xscale("log", nonposx='clip')
+# plt.gca().set_yscale("log", nonposy='clip')
+plt.xlabel('step')
+plt.ylabel(r'score ($\epsilon$=%s)' % args.eps_corr)
+plt.savefig(target_path + '/scores_plot_eps%s_len%s.png' % (args.eps_corr, args.seq_len),
+            bbox_inches='tight', dpi=600)

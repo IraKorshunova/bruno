@@ -33,6 +33,10 @@ def student_pdf_1d(X, mu, var, nu):
     return num / denom
 
 
+def gauss_pdf_1d(X, mu, var):
+    return 1. / np.sqrt(2. * np.pi * var) * np.exp(- (X - mu) ** 2 / (2. * var))
+
+
 np.random.seed(seed=42)
 
 configs_dir = __file__.split('/')[-2]
@@ -61,7 +65,8 @@ with tf.Session() as sess:
     print('restoring parameters from', ckpt_file)
     saver.restore(sess, tf.train.latest_checkpoint(save_dir))
 
-    nu = config.student_layer.nu.eval().flatten()
+    if hasattr(config.student_layer, 'nu'):
+        nu = config.student_layer.nu.eval().flatten()
     mu = config.student_layer.mu.eval().flatten()
     var = config.student_layer.var.eval().flatten()
 
@@ -93,8 +98,12 @@ with tf.Session() as sess:
             x_lim = (mu[i] - 5 * np.sqrt(var[i]), mu[i] + 5 * np.sqrt(var[i]))
 
         x_range = np.linspace(x_lim[0], x_lim[1], 1000)
-        y = student_pdf_1d(x_range, mu[i], var[i], nu[i])
-        plt.plot(x_range, y, 'black', label='theor', linewidth=2.5)
+        if gp_model:
+            y = gauss_pdf_1d(x_range, mu[i], var[i])
+        else:
+            y = student_pdf_1d(x_range, mu[i], var[i], nu[i])
+
+        plt.plot(x_range, y, 'black', label='theory', linewidth=2.5)
 
         if gp_model:
             plt.hist(all_codes[:, i], bins=100, normed=True, alpha=0.5, label='actual')

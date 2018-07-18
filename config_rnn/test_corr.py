@@ -67,7 +67,7 @@ with tf.Session() as sess:
 
     n_remained = []
     eps_range = []
-    for t in np.arange(0, 0.9, 0.005):
+    for t in np.arange(0, 0.9, 0.001):
         nr = np.sum(corr > t)
         if not n_remained:
             n_remained.append(nr)
@@ -76,7 +76,8 @@ with tf.Session() as sess:
             if nr != n_remained[-1]:
                 n_remained.append(nr)
                 eps_range.append(t)
-        print(t, n_remained[-1])
+        if t < 0.1:
+            print(t, n_remained[-1])
 
     target_path = save_dir
     fig = plt.figure(figsize=(4, 3))

@@ -7,7 +7,6 @@ import nn_extra_nvp
 import nn_extra_student
 from config_rnn import defaults
 
-init_batch_size = 32
 batch_size = 16
 sample_batch_size = 1
 n_samples = 4
@@ -16,7 +15,7 @@ seq_len = defaults.seq_len
 eps_corr = defaults.eps_corr
 mask_dims = defaults.mask_dims
 
-nonlinearity = tf.nn.relu
+nonlinearity = tf.nn.elu
 weight_norm = True
 
 train_data_iter = data_iter.BaseExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size,

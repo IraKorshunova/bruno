@@ -33,7 +33,7 @@ print('exp_id', experiment_id)
 model = tf.make_template('model', config.build_model)
 all_params = tf.trainable_variables()
 
-x_in = tf.placeholder(tf.float32, shape=(1,) + config.obs_shape)
+x_in = tf.placeholder(tf.float32, shape=(config.seq_len,) + config.obs_shape)
 model_output = model(x_in)
 latent_log_probs, latent_log_probs_prior = model_output[1], model_output[2]
 
@@ -50,16 +50,14 @@ with tf.Session() as sess:
 
     # test
     data_iter = config.train_data_iter
-    data_iter.batch_size = 1
 
     scores = []
     prior_ll = []
-    for _, (x_batch, _) in zip(batch_idxs, data_iter.generate_each_digit(same_image=True)):
+    for _, x_batch in zip(batch_idxs, data_iter.generate_diagonal_roll()):
         lp, lp_prior = sess.run([latent_log_probs, latent_log_probs_prior], feed_dict={x_in: x_batch})
-        scores.append(lp - lp_prior)
-        prior_ll.append(lp_prior)
-        print(scores[-1])
-        print('--------------------------')
+        score = np.diag(lp - lp_prior)
+        scores.append(score)
+        prior_ll.append(lp_prior[0])
 
     scores = np.stack(scores, axis=0)
     print(scores.shape)

@@ -61,9 +61,10 @@ def plot_anomaly(config_name, n_sequences):
             iqr = quartile_3 - quartile_1
             lower_bound = quartile_1 - (iqr * 1.5)
             anomaly_idxs = np.where(np.asarray(scores) < lower_bound)[0]
+            # don't count the first image as an outlier
+            anomaly_idxs = np.delete(anomaly_idxs, np.argwhere(anomaly_idxs == 0))
             print(anomaly_idxs)
 
-            img_dim = int(np.sqrt(x_batch.shape[-1]))
             x_batch = np.squeeze(x_batch)
             x_batch = x_batch[anomaly_idxs]
 

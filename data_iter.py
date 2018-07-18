@@ -356,6 +356,31 @@ class BaseExchSeqDataIterator(object):
             if not self.infinite:
                 break
 
+    def generate_diagonal_roll(self, rng=None):
+        rng = self.rng if rng is None else rng
+        batch_size = self.seq_len
+
+        while True:
+            x_batch = np.zeros((batch_size,) + self.get_observation_size(), dtype='float32')
+
+            j = rng.randint(0, 10) if self.digits is None else rng.choice(self.digits)
+            idxs = self.y2idxs[j]
+            assert len(idxs) >= self.seq_len
+            rng.shuffle(idxs)
+
+            sequence = np.zeros((1,) + self.get_observation_size(), dtype='float32')
+            for k in range(self.seq_len):
+                sequence[0, k, :] = self.x[idxs[k], :]
+            sequence += rng.uniform(size=sequence.shape)
+
+            for i in range(batch_size):
+                x_batch[i, :, :] = np.roll(sequence, i, axis=1)
+
+            yield x_batch
+
+            if not self.infinite:
+                break
+
 
 class BaseTestBatchSeqDataIterator(object):
     def __init__(self, seq_len, set='train', dataset='mnist', rng=None, infinite=True, digits=None):
