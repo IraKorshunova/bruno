@@ -16,12 +16,15 @@ import matplotlib.pyplot as plt
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--config_name', type=str, default='nvp_1', help='Configuration name')
+parser.add_argument('--set', type=str, default='test', help='train or test set?')
 parser.add_argument('--seq_len', type=int, default=20, help='sequence length')
 parser.add_argument('--mask_dims', type=int, default=0, help='keep the dimensions with correlation > eps_corr?')
 parser.add_argument('--eps_corr', type=float, default=0., help='minimum correlation')
 args, _ = parser.parse_known_args()
 defaults.set_parameters(args)
 print(args)
+if args.mask_dims == 0:
+    assert args.eps_corr == 0.
 # -----------------------------------------------------------------------------
 rng = np.random.RandomState(42)
 tf.set_random_seed(42)
@@ -44,6 +47,8 @@ latent_log_probs, latent_log_probs_prior = model_output[1], model_output[2]
 
 saver = tf.train.Saver()
 
+data_iter = config.test_data_iter if args.set == 'test' else config.train_data_iter
+
 with tf.Session() as sess:
     begin = time.time()
     ckpt_file = save_dir + 'params.ckpt'
@@ -52,9 +57,6 @@ with tf.Session() as sess:
 
     n_iter = 1000
     batch_idxs = range(0, n_iter)
-
-    # test
-    data_iter = config.train_data_iter
 
     scores = []
     prior_ll = []
@@ -78,9 +80,7 @@ fig = plt.figure(figsize=(4, 3))
 plt.grid(True, which="both", ls="-", linewidth='0.2')
 plt.plot(range(len(scores_mean)), scores_mean, 'black', linewidth=1.)
 plt.scatter(range(len(scores_mean)), scores_mean, s=1.5, c='black')
-# plt.gca().set_xscale("log", nonposx='clip')
-# plt.gca().set_yscale("log", nonposy='clip')
 plt.xlabel('step')
 plt.ylabel(r'score ($\epsilon$=%s)' % args.eps_corr)
-plt.savefig(target_path + '/scores_plot_eps%s_len%s.png' % (args.eps_corr, args.seq_len),
+plt.savefig(target_path + '/scores_plot_eps%s_len%s_%s.png' % (args.eps_corr, args.seq_len, args.set),
             bbox_inches='tight', dpi=600)

@@ -30,7 +30,7 @@ train_data_iter = data_iter.OmniglotEpisodesDataIterator(seq_len=seq_len,
                                                          augment=True)
 
 test_data_iter2 = data_iter.OmniglotTestBatchSeqDataIterator(seq_len=seq_len,
-                                                             batch_size=5,
+                                                             batch_size=batch_size,
                                                              set='test',
                                                              rng=rng,
                                                              augment=True)

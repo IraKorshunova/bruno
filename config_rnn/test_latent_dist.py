@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 parser = argparse.ArgumentParser()
 parser.add_argument('--config_name', type=str, required=True, help='name of the configuration')
 parser.add_argument('--seq_len', type=int, default=2, help='sequence length')
-
+parser.add_argument('--set', type=str, default='test', help='train or test set?')
 args, _ = parser.parse_known_args()
 defaults.set_parameters(args)
 print(args)
@@ -48,7 +48,7 @@ experiment_id = os.path.dirname(save_dir)
 print('exp_id', experiment_id)
 
 # samples
-target_path = save_dir + '/hists'
+target_path = save_dir + '/hists_%s' % args.set
 utils.autodir(target_path)
 
 # create the model
@@ -60,21 +60,25 @@ x_in = tf.placeholder(tf.float32, shape=(batch_size,) + config.obs_shape)
 z_codes = model(x_in)[3]
 
 saver = tf.train.Saver()
+
+# data iter
+data_iter = config.test_data_iter if args.set == 'test' else config.train_data_iter
+data_iter.batch_size = batch_size
+
 with tf.Session() as sess:
     ckpt_file = save_dir + 'params.ckpt'
     print('restoring parameters from', ckpt_file)
     saver.restore(sess, tf.train.latest_checkpoint(save_dir))
 
-    if hasattr(config.student_layer, 'nu'):
-        nu = config.student_layer.nu.eval().flatten()
     mu = config.student_layer.mu.eval().flatten()
     var = config.student_layer.var.eval().flatten()
+    corr = config.student_layer.corr.eval().flatten()
+    if hasattr(config.student_layer, 'nu'):
+        nu = config.student_layer.nu.eval().flatten()
+    else:
+        nu = np.zeros_like(mu)
 
     batch_idxs = range(0, 1)
-
-    # test
-    data_iter = config.test_data_iter
-    data_iter.batch_size = batch_size
 
     all_codes = None
     for _, x_batch in zip(batch_idxs, data_iter.generate()):
@@ -117,6 +121,7 @@ with tf.Session() as sess:
         plt.legend(loc='upper right', fontsize=18)
         plt.xlabel('z', fontsize=20)
         plt.ylabel('p(z)', fontsize=20)
+        plt.title('corr=%s, var=%s, nu=%s' % (corr[i], var[i], nu[i]))
         plt.savefig(target_path + '/hist_latent_%s.png' % i, bbox_inches='tight', pad_inches=0)
         plt.close()
         plt.clf()

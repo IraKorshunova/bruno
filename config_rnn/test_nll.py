@@ -48,24 +48,30 @@ with tf.Session() as sess:
     data_iter = config.test_data_iter
     data_iter.batch_size = 1
 
-    losses = []
+    probs = []
+    probs_prior = []
     for _, x_batch in zip(batch_idxs, data_iter.generate()):
         l = sess.run(log_probs, feed_dict={x_in: x_batch})
-        losses.append(l)
-    avg_loss = -1. * np.mean(losses)
+        probs.append(l)
+        probs_prior.append(l[:, 0])
+    avg_loss = -1. * np.mean(probs)
     bits_per_dim = avg_loss / np.log(2.) / config.ndim
-    print('Test Loss', avg_loss)
-    print('Bits per dim', bits_per_dim)
+    print('Test Loss %.3f' % avg_loss)
+    print('Bits per dim %.3f' % bits_per_dim)
+    print('Test loss under prior %.3f' % -np.mean(probs_prior))
 
     # train
     data_iter = config.train_data_iter
     data_iter.batch_size = 1
 
-    losses = []
+    probs = []
+    probs_prior = []
     for _, x_batch in zip(batch_idxs, data_iter.generate()):
         l = sess.run(log_probs, feed_dict={x_in: x_batch})
-        losses.append(l)
-    avg_loss = -1. * np.mean(losses)
+        probs.append(l)
+        probs_prior.append(l[:, 0])
+    avg_loss = -1. * np.mean(probs)
     bits_per_dim = avg_loss / np.log(2.) / config.ndim
-    print('Train Loss', avg_loss)
-    print('Bits per dim', bits_per_dim)
+    print('Train Loss %.3f' % avg_loss)
+    print('Bits per dim %.3f' % bits_per_dim)
+    print('Train loss under prior %.3f' % -np.mean(probs_prior))

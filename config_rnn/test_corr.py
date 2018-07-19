@@ -44,21 +44,19 @@ with tf.Session() as sess:
     print('restoring parameters from', ckpt_file)
     saver.restore(sess, tf.train.latest_checkpoint(save_dir))
 
-    var = config.student_layer.var.eval()
-    corr = config.student_layer.corr.eval()
+    var = config.student_layer.var.eval().flatten()
+    corr = config.student_layer.corr.eval().flatten()
 
     if hasattr(config.student_layer, 'nu'):
         nu = config.student_layer.nu.eval().flatten()
     else:
-        nu = np.zeros_like(var).flatten()
+        nu = np.zeros_like(var)
 
-    print('--------------------')
     print('nu\n', nu)
     print('--------------------')
     print('var\n', var)
     print('--------------------')
     print('corr\n', corr)
-    corr = corr.flatten()
 
     print('******* corr - nu ********')
     for c, n in zip(corr[np.where(corr > 0.05)[0]], nu[np.where(corr > 0.05)[0]]):
@@ -90,3 +88,30 @@ with tf.Session() as sess:
     plt.ylabel('number of dimensions')
     plt.savefig(target_path + '/eps_plot.png',
                 bbox_inches='tight', dpi=600)
+
+    plt.figure(figsize=(4, 3))
+    plt.scatter(nu, corr, s=1.5, c='black')
+    plt.xlabel('nu')
+    plt.ylabel('corr')
+    plt.savefig(target_path + '/nu_corr.png',
+                bbox_inches='tight', dpi=600)
+
+    plt.figure(figsize=(4, 3))
+    plt.scatter(var, corr, s=1.5, c='black')
+    plt.xlabel('var')
+    plt.ylabel('corr')
+    plt.savefig(target_path + '/var_corr.png',
+                bbox_inches='tight', dpi=600)
+
+    plt.figure(figsize=(4, 3))
+    plt.scatter(nu, var, s=1.5, c='black')
+    plt.xlabel('nu')
+    plt.ylabel('var')
+    plt.savefig(target_path + '/nu_var.png',
+                bbox_inches='tight', dpi=600)
+
+    # bad_dims = np.intersect1d(np.where(0.002 < corr)[0], np.where(0.003 > corr)[0])
+    # print(bad_dims)
+    # print(len(bad_dims))
+    # for i in bad_dims:
+    #     print(i, corr[i], nu[i], var[i])

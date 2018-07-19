@@ -11,11 +11,11 @@ batch_size = 32
 sample_batch_size = 1
 n_samples = 4
 rng = np.random.RandomState(42)
-seq_len = defaults.seq_len_mnist
+seq_len = defaults.seq_len
 eps_corr = defaults.eps_corr
 mask_dims = defaults.mask_dims
 
-nonlinearity = tf.nn.relu
+nonlinearity = tf.nn.elu
 weight_norm = True
 
 train_data_iter = data_iter.BaseExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size,
@@ -33,7 +33,7 @@ optimizer = 'rmsprop'
 learning_rate = 0.001
 lr_decay = 0.999995
 scale_student_grad = 0.
-max_iter = 200000
+max_iter = 70000
 save_every = 1000
 student_grad_schedule = {0: 0., 100: 0.1}
 

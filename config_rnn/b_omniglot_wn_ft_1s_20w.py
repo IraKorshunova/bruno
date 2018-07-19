@@ -6,6 +6,7 @@ import data_iter
 import nn_extra_nvp
 import nn_extra_student
 import utils
+from config_rnn import defaults
 
 base_metadata_path = utils.find_model_metadata('metadata/', 'b_omniglot_wn')
 
@@ -13,8 +14,8 @@ init_batch_size = 32
 sample_batch_size = 1
 n_samples = 4
 rng = np.random.RandomState(42)
-seq_len = 2  # 1-shot (2nd image is a test image)
-batch_size = 20  # 20-way
+seq_len = defaults.seq_len_few_shot  # 1-shot (2nd image is a test image)
+batch_size = defaults.batch_size_few_shot  # 20-way
 meta_batch_size = 8
 eps_corr = None
 mask_dims = False
@@ -30,7 +31,7 @@ train_data_iter = data_iter.OmniglotEpisodesDataIterator(seq_len=seq_len,
                                                          augment=True)
 
 test_data_iter2 = data_iter.OmniglotTestBatchSeqDataIterator(seq_len=seq_len,
-                                                             batch_size=5,
+                                                             batch_size=batch_size,
                                                              set='test',
                                                              rng=rng,
                                                              augment=True)

@@ -104,6 +104,8 @@ parser.add_argument('--condition_on_train', type=int, default=1,
 args, _ = parser.parse_known_args()
 defaults.set_parameters(args)
 print(args)
+if args.mask_dims == 0:
+    assert args.eps_corr == 0.
 # -----------------------------------------------------------------------------
 
 classify(config_name=args.config_name,

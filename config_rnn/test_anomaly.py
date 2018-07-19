@@ -109,6 +109,8 @@ parser.add_argument('--eps_corr', type=float, default=0., help='minimum correlat
 args, _ = parser.parse_known_args()
 defaults.set_parameters(args)
 print(args)
+if args.mask_dims == 0:
+    assert args.eps_corr == 0.
 # -----------------------------------------------------------------------------
 
 plot_anomaly(args.config_name, args.n_sequences)
