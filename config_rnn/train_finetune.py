@@ -63,7 +63,7 @@ tf_lr = tf.placeholder(tf.float32, shape=[])
 tf_student_grad_scale = tf.placeholder(tf.float32, shape=[])
 
 with tf.variable_scope('train'):
-    log_probs = model(x_in)
+    log_probs = model(x_in)[0]
     train_loss = tf.check_numerics(config.loss(log_probs), 'loss has nans')
     grads = tf.gradients(train_loss, all_params)
 
