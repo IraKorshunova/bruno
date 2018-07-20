@@ -1,5 +1,6 @@
 import argparse
 import importlib
+import json
 import os
 import time
 
@@ -15,14 +16,14 @@ import matplotlib.pyplot as plt
 
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
-parser.add_argument('-c', '--config_name', type=str, default='nvp_1', help='Configuration name')
+parser.add_argument('-c', '--config_name', type=str, required=True, help='Configuration name')
 parser.add_argument('--set', type=str, default='test', help='train or test set?')
 parser.add_argument('--seq_len', type=int, default=20, help='sequence length')
 parser.add_argument('--mask_dims', type=int, default=0, help='keep the dimensions with correlation > eps_corr?')
 parser.add_argument('--eps_corr', type=float, default=0., help='minimum correlation')
 args, _ = parser.parse_known_args()
 defaults.set_parameters(args)
-print(args)
+print('input args:\n', json.dumps(vars(args), indent=4, separators=(',', ':')))
 if args.mask_dims == 0:
     assert args.eps_corr == 0.
 # -----------------------------------------------------------------------------
@@ -43,7 +44,7 @@ all_params = tf.trainable_variables()
 
 x_in = tf.placeholder(tf.float32, shape=(config.seq_len,) + config.obs_shape)
 model_output = model(x_in)
-latent_log_probs, latent_log_probs_prior = model_output[1], model_output[2]
+log_probs, latent_log_probs, latent_log_probs_prior = model_output[0], model_output[1], model_output[2]
 
 saver = tf.train.Saver()
 
@@ -60,13 +61,16 @@ with tf.Session() as sess:
 
     scores = []
     prior_ll = []
+    probs_x = []
     for _, x_batch in zip(batch_idxs, data_iter.generate_diagonal_roll()):
-        lp, lp_prior = sess.run([latent_log_probs, latent_log_probs_prior], feed_dict={x_in: x_batch})
-        score = np.diag(lp - lp_prior)
+        lp_x, lp_z, lp_prior_z = sess.run([log_probs, latent_log_probs, latent_log_probs_prior],
+                                          feed_dict={x_in: x_batch})
+        score = np.diag(lp_z - lp_prior_z)
         scores.append(score)
-        prior_ll.append(lp_prior[0])
+        prior_ll.append(lp_x[0])
+        probs_x.append(np.diag(lp_x))
 
-    scores = np.stack(scores, axis=0)
+    scores = np.asarray(scores)
     print(scores.shape)
     scores_mean = np.mean(scores, axis=0)
     print(scores_mean)
@@ -75,12 +79,29 @@ with tf.Session() as sess:
     print('LL:', prior_ll_mean)
     print('bits per dim:', -1. * prior_ll_mean / config.ndim / np.log(2.))
 
-target_path = save_dir
-fig = plt.figure(figsize=(4, 3))
-plt.grid(True, which="both", ls="-", linewidth='0.2')
-plt.plot(range(len(scores_mean)), scores_mean, 'black', linewidth=1.)
-plt.scatter(range(len(scores_mean)), scores_mean, s=1.5, c='black')
-plt.xlabel('step')
-plt.ylabel(r'score ($\epsilon$=%s)' % args.eps_corr)
-plt.savefig(target_path + '/scores_plot_eps%s_len%s_%s.png' % (args.eps_corr, args.seq_len, args.set),
-            bbox_inches='tight', dpi=600)
+    target_path = save_dir
+    fig = plt.figure(figsize=(4, 3))
+    plt.grid(True, which="both", ls="-", linewidth='0.2')
+    plt.plot(range(len(scores_mean)), scores_mean, 'black', linewidth=1.)
+    plt.scatter(range(len(scores_mean)), scores_mean, s=1.5, c='black')
+    plt.xlabel('step')
+    plt.ylabel(r'score ($\epsilon$=%s)' % args.eps_corr)
+    plt.savefig(target_path + '/scores_plot_eps%s_len%s_%s.png' % (args.eps_corr, args.seq_len, args.set),
+                bbox_inches='tight', dpi=600)
+
+    probs_x = np.asarray(probs_x)
+    print(probs_x.shape)
+    nll = -1. * np.mean(probs_x, axis=0)
+    print(nll)
+    print('NLL:', nll)
+    print('bits per dim:', nll / config.ndim / np.log(2.))
+
+    target_path = save_dir
+    fig = plt.figure(figsize=(4, 3))
+    plt.grid(True, which="both", ls="-", linewidth='0.2')
+    plt.plot(range(len(nll)), nll, 'black', linewidth=1.)
+    plt.scatter(range(len(nll)), nll, s=1.5, c='black')
+    plt.xlabel('step')
+    plt.ylabel(r'score ($\epsilon$=%s)' % args.eps_corr)
+    plt.savefig(target_path + '/nll_plot_eps%s_len%s_%s.png' % (args.eps_corr, args.seq_len, args.set),
+                bbox_inches='tight', dpi=600)

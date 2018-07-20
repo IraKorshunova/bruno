@@ -12,6 +12,8 @@ import utils
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--config_name', type=str, required=True, help='Configuration name')
+parser.add_argument('--seq_len', type=int, default=20, help='sequence length')
+parser.add_argument('--n_batches', type=int, default=10000, help='number of batches')
 args, _ = parser.parse_known_args()
 print('input args:\n', json.dumps(vars(args), indent=4, separators=(',', ':')))
 # -----------------------------------------------------------------------------
@@ -40,9 +42,9 @@ with tf.Session() as sess:
     ckpt_file = save_dir + 'params.ckpt'
     print('restoring parameters from', ckpt_file)
     saver.restore(sess, tf.train.latest_checkpoint(save_dir))
+    print('Sequence length:', args.seq_len)
 
-    n_iter = 10000
-    batch_idxs = range(0, n_iter)
+    batch_idxs = range(0, args.n_batches)
 
     # test
     data_iter = config.test_data_iter
@@ -52,7 +54,7 @@ with tf.Session() as sess:
     probs_prior = []
     for _, x_batch in zip(batch_idxs, data_iter.generate()):
         l = sess.run(log_probs, feed_dict={x_in: x_batch})
-        probs.append(l)
+        probs.append(l[:, :args.seq_len])
         probs_prior.append(l[:, 0])
     avg_loss = -1. * np.mean(probs)
     bits_per_dim = avg_loss / np.log(2.) / config.ndim
@@ -68,7 +70,7 @@ with tf.Session() as sess:
     probs_prior = []
     for _, x_batch in zip(batch_idxs, data_iter.generate()):
         l = sess.run(log_probs, feed_dict={x_in: x_batch})
-        probs.append(l)
+        probs.append(l[:, :args.seq_len])
         probs_prior.append(l[:, 0])
     avg_loss = -1. * np.mean(probs)
     bits_per_dim = avg_loss / np.log(2.) / config.ndim

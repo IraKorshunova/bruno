@@ -18,7 +18,7 @@ my_dpi = 96
 
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
-parser.add_argument('-c', '--config_name', type=str, default='nvp_1', help='Configuration name')
+parser.add_argument('-c', '--config_name', type=str, required=True, help='Configuration name')
 parser.add_argument('-s', '--set', type=str, default='test', help='Test or train part')
 parser.add_argument('-same', '--same_image', type=int, default=0, help='Same image as inputl')
 args, _ = parser.parse_known_args()

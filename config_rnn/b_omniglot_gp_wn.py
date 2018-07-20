@@ -5,7 +5,6 @@ from tensorflow.contrib.framework.python.ops import arg_scope
 import data_iter
 import nn_extra_gauss
 import nn_extra_nvp
-import nn_extra_student
 from config_rnn import defaults
 
 batch_size = 32

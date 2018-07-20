@@ -20,9 +20,9 @@ nonlinearity = tf.nn.elu
 weight_norm = True
 
 train_data_iter = data_iter.BaseExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size,
-                                                    set='train', rng=rng)
+                                                    set='train', rng=rng, dataset='fashion_mnist')
 test_data_iter = data_iter.BaseExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size, set='test',
-                                                   rng=rng_test)
+                                                   rng=rng_test, dataset='fashion_mnist')
 
 test_data_iter2 = data_iter.BaseTestBatchSeqDataIterator(seq_len=seq_len,
                                                          set='test',

@@ -95,6 +95,30 @@ class OmniglotExchSeqDataIterator(object):
             x_batch += noise_rng.uniform(size=x_batch.shape)
             yield x_batch, y_batch
 
+    def generate_diagonal_roll(self, rng=None):
+        rng = self.rng if rng is None else rng
+        batch_size = self.seq_len
+
+        while True:
+            x_batch = np.zeros((batch_size,) + self.get_observation_size(), dtype='float32')
+            j = rng.choice(self.classes)
+            idxs = self.y2idxs[j]
+            assert len(idxs) >= self.seq_len
+            rng.shuffle(idxs)
+
+            sequence = np.zeros((1,) + self.get_observation_size(), dtype='float32')
+            for k in range(self.seq_len):
+                sequence[0, k, :] = self.x[idxs[k], :]
+            sequence += rng.uniform(size=sequence.shape)
+
+            for i in range(batch_size):
+                x_batch[i, :, :] = np.roll(sequence, i, axis=1)
+
+            yield x_batch
+
+            if not self.infinite:
+                break
+
 
 class OmniglotTestBatchSeqDataIterator(object):
     def __init__(self, seq_len, batch_size, set='test', rng=None, augment=False):

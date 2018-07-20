@@ -3,8 +3,8 @@ import tensorflow as tf
 from tensorflow.contrib.framework.python.ops import arg_scope
 
 import data_iter
+import nn_extra_gauss
 import nn_extra_nvp
-import nn_extra_student
 from config_rnn import defaults
 
 batch_size = 64
@@ -20,9 +20,9 @@ nonlinearity = tf.nn.elu
 weight_norm = True
 
 train_data_iter = data_iter.BaseExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size,
-                                                    set='train', rng=rng)
+                                                    set='train', rng=rng, dataset='fashion_mnist')
 test_data_iter = data_iter.BaseExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size, set='test',
-                                                   rng=rng_test)
+                                                   rng=rng_test, dataset='fashion_mnist')
 
 test_data_iter2 = data_iter.BaseTestBatchSeqDataIterator(seq_len=seq_len,
                                                          set='test',
@@ -64,7 +64,7 @@ def build_model(x, init=False, sampling_mode=False):
 
         global student_layer
         if student_layer is None:
-            student_layer = nn_extra_student.StudentRecurrentLayer(shape=(ndim,), corr_init=corr_init, learn_mu=False)
+            student_layer = nn_extra_gauss.GaussianRecurrentLayer(shape=(ndim,), corr_init=corr_init, learn_mu=False)
 
         x_shape = nn_extra_nvp.int_shape(x)
         x_bs = tf.reshape(x, (x_shape[0] * x_shape[1], x_shape[2], x_shape[3], x_shape[4]))

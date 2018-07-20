@@ -15,7 +15,7 @@ from matplotlib import colors as mcolors
 
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
-parser.add_argument('-c', '--config_name', type=str, default='nvp_1', help='Configuration name')
+parser.add_argument('-c', '--config_name', type=str, required=True, help='Configuration name')
 parser.add_argument('-ds', '--data_set', type=str, default='omniglot', help='Dataset name')
 args = parser.parse_args()
 print('input args:\n', json.dumps(vars(args), indent=4, separators=(',', ':')))  # pretty print args

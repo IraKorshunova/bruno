@@ -1,5 +1,6 @@
 import argparse
 import importlib
+import json
 import os
 import sys
 from collections import defaultdict
@@ -103,7 +104,7 @@ parser.add_argument('--condition_on_train', type=int, default=1,
                     help='use images from the train subset (not used for training anyway)')
 args, _ = parser.parse_known_args()
 defaults.set_parameters(args)
-print(args)
+print('input args:\n', json.dumps(vars(args), indent=4, separators=(',', ':')))
 if args.mask_dims == 0:
     assert args.eps_corr == 0.
 # -----------------------------------------------------------------------------

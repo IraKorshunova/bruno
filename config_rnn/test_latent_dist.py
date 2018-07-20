@@ -1,5 +1,6 @@
 import argparse
 import importlib
+import json
 import math
 import os
 
@@ -20,7 +21,7 @@ parser.add_argument('--seq_len', type=int, default=2, help='sequence length')
 parser.add_argument('--set', type=str, default='test', help='train or test set?')
 args, _ = parser.parse_known_args()
 defaults.set_parameters(args)
-print(args)
+print('input args:\n', json.dumps(vars(args), indent=4, separators=(',', ':')))
 gp_model = True if 'gp' in args.config_name else False
 
 
@@ -95,11 +96,8 @@ with tf.Session() as sess:
         ax = plt.gca()
         ax.margins(x=0)
 
-        if gp_model:
-            x_lim = (np.min(all_codes[:, i]), np.max(all_codes[:, i]))
-            x_lim = (min(mu[i] - 5 * np.sqrt(var[i]), x_lim[0]), max(mu[i] + 5 * np.sqrt(var[i]), x_lim[0]))
-        else:
-            x_lim = (mu[i] - 5 * np.sqrt(var[i]), mu[i] + 5 * np.sqrt(var[i]))
+        x_lim = (np.min(all_codes[:, i]), np.max(all_codes[:, i]))
+        x_lim = (min(mu[i] - 5 * np.sqrt(var[i]), x_lim[0]), max(mu[i] + 5 * np.sqrt(var[i]), x_lim[0]))
 
         x_range = np.linspace(x_lim[0], x_lim[1], 1000)
         if gp_model:

@@ -1,5 +1,6 @@
 import argparse
 import importlib
+import json
 import os
 import sys
 from collections import defaultdict
@@ -106,7 +107,7 @@ parser.add_argument('--mask_dims', type=int, default=0, help='keep the dimension
 parser.add_argument('--eps_corr', type=float, default=0., help='minimum correlation')
 args, _ = parser.parse_known_args()
 defaults.set_parameters(args)
-print(args)
+print('input args:\n', json.dumps(vars(args), indent=4, separators=(',', ':')))
 if args.mask_dims == 0:
     assert args.eps_corr == 0.
 # -----------------------------------------------------------------------------
