@@ -3,11 +3,10 @@ import importlib
 import json
 import os
 import time
-
 import numpy as np
 import tensorflow as tf
-
 import utils
+from config_rnn import defaults
 
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
@@ -15,6 +14,7 @@ parser.add_argument('-c', '--config_name', type=str, required=True, help='Config
 parser.add_argument('--seq_len', type=int, default=20, help='sequence length')
 parser.add_argument('--n_batches', type=int, default=10000, help='number of batches')
 args, _ = parser.parse_known_args()
+defaults.set_parameters(args)
 print('input args:\n', json.dumps(vars(args), indent=4, separators=(',', ':')))
 # -----------------------------------------------------------------------------
 rng = np.random.RandomState(42)
@@ -52,9 +52,9 @@ with tf.Session() as sess:
 
     probs = []
     probs_prior = []
-    for _, x_batch in zip(batch_idxs, data_iter.generate()):
+    for _, x_batch in zip(batch_idxs, data_iter.generate(noise_rng=rng)):
         l = sess.run(log_probs, feed_dict={x_in: x_batch})
-        probs.append(l[:, :args.seq_len])
+        probs.append(l)
         probs_prior.append(l[:, 0])
     avg_loss = -1. * np.mean(probs)
     bits_per_dim = avg_loss / np.log(2.) / config.ndim
@@ -68,9 +68,9 @@ with tf.Session() as sess:
 
     probs = []
     probs_prior = []
-    for _, x_batch in zip(batch_idxs, data_iter.generate()):
+    for _, x_batch in zip(batch_idxs, data_iter.generate(noise_rng=rng)):
         l = sess.run(log_probs, feed_dict={x_in: x_batch})
-        probs.append(l[:, :args.seq_len])
+        probs.append(l)
         probs_prior.append(l[:, 0])
     avg_loss = -1. * np.mean(probs)
     bits_per_dim = avg_loss / np.log(2.) / config.ndim

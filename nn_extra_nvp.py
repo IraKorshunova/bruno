@@ -9,7 +9,7 @@ def int_shape(x):
 
 def logit_forward_and_jacobian(x, sum_log_det_jacobians):
     alpha = 1e-5
-    y = x * (1 - alpha) + alpha * 0.5
+    y = x * (1 - alpha) + alpha * 0.5 # TODO
     jac = tf.reduce_sum(-tf.log(y) - tf.log(1 - y), [1, 2, 3])
     y = tf.log(y) - tf.log(1. - y)
     sum_log_det_jacobians += jac
@@ -32,7 +32,6 @@ class Layer():
 
 
 class CouplingLayerConv(Layer):
-
     def __init__(self, mask_type, name='CouplingLayer', nonlinearity=tf.nn.relu, weight_norm=True):
         self.mask_type = mask_type
         self.name = name

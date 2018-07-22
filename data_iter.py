@@ -1,10 +1,8 @@
 import numpy as np
-
 import utils
 
 
 class OmniglotExchSeqDataIterator(object):
-
     def __init__(self, seq_len, batch_size, set='train', valid_split=False, rng=None, augment=True, infinite=True):
 
         (x_train, y_train), (x_test, y_test), valid_classes = utils.load_omniglot()
@@ -54,8 +52,9 @@ class OmniglotExchSeqDataIterator(object):
     def get_observation_size(self):
         return (self.seq_len,) + self.img_shape
 
-    def generate(self, rng=None):
+    def generate(self, rng=None, noise_rng=None):
         rng = self.rng if rng is None else rng
+        noise_rng = self.rng if noise_rng is None else noise_rng
 
         while True:
             x_batch = np.zeros((self.batch_size,) + self.get_observation_size(), dtype='float32')
@@ -70,7 +69,7 @@ class OmniglotExchSeqDataIterator(object):
                     if self.augment:
                         x_batch[i, k] = np.rot90(x_batch[i, k], k=rotation, axes=(0, 1))
 
-            x_batch += rng.uniform(size=x_batch.shape)
+            x_batch += noise_rng.uniform(size=x_batch.shape)
             yield x_batch
 
             if not self.infinite:
@@ -317,8 +316,9 @@ class BaseExchSeqDataIterator(object):
     def get_observation_size(self):
         return (self.seq_len,) + self.img_shape
 
-    def generate(self, rng=None):
+    def generate(self, rng=None, noise_rng=None):
         rng = self.rng if rng is None else rng
+        noise_rng = self.rng if noise_rng is None else noise_rng
 
         while True:
             x_batch = np.zeros((self.batch_size,) + self.get_observation_size(), dtype='float32')
@@ -332,7 +332,7 @@ class BaseExchSeqDataIterator(object):
                 for k in range(self.seq_len):
                     x_batch[i, k, :] = self.x[idxs[k], :]
 
-            x_batch += rng.uniform(size=x_batch.shape)
+            x_batch += noise_rng.uniform(size=x_batch.shape)
             yield x_batch
 
             if not self.infinite:

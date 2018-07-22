@@ -5,10 +5,8 @@ import os
 import pickle
 import sys
 import time
-
 import numpy as np
 import tensorflow as tf
-
 import logger
 import utils
 
@@ -37,9 +35,9 @@ else:
     save_dir = utils.find_model_metadata('metadata/', args.config_name)
     experiment_id = os.path.dirname(save_dir).split('/')[-1]
     with open(save_dir + '/meta.pkl', 'rb') as f:
-        d = pickle.load(f)
-        last_lr = d['lr']
-        last_iteration = d['iteration']
+        resumed_metadata = pickle.load(f)
+        last_lr = resumed_metadata['lr']
+        last_iteration = resumed_metadata['iteration']
         print('Last iteration', last_iteration)
         print('Last learning rate', last_lr)
 
@@ -142,9 +140,12 @@ student_grad_scale = config.scale_student_grad
 batch_idxs = range(0, config.max_iter)
 print_every = 100
 train_iter_losses = []
-losses_eval_valid = []
-losses_eval_train = []
-losses_avg_train = []
+if args.resume:
+    losses_eval_valid = resumed_metadata['losses_eval_valid']
+    losses_eval_train = resumed_metadata['losses_eval_train']
+    losses_avg_train = resumed_metadata['losses_avg_train']
+else:
+    losses_eval_valid, losses_eval_train, losses_avg_train = [], [], []
 
 with tf.Session() as sess:
     if args.resume:
