@@ -5,11 +5,9 @@ import os
 import pickle
 import sys
 import time
-
 import matplotlib
 import numpy as np
 import tensorflow as tf
-
 import logger
 import utils
 
@@ -217,8 +215,10 @@ with tf.Session() as sess:
 
                 probs_x = []
                 rng = np.random.RandomState(42)
+                noise_rng = np.random.RandomState(317070)
                 for _, x_valid_batch in zip(range(0, config.n_valid_batches * 10),
-                                            config.valid_data_iter.generate_diagonal_roll(noise_rng=rng)):
+                                            config.valid_data_iter.generate_diagonal_roll(rng=rng,
+                                                                                          noise_rng=noise_rng)):
                     feed_dict = {x_in_diag_roll: x_valid_batch}
                     l = sess.run([log_probs_diag], feed_dict)
                     probs_x.append(np.diag(l[0]))
@@ -248,8 +248,9 @@ with tf.Session() as sess:
 
                 probs_x = []
                 rng = np.random.RandomState(42)
+                noise_rng = np.random.RandomState(317070)
                 for _, x_valid_batch in zip(range(0, config.n_valid_batches),
-                                            config.train_data_iter.generate_diagonal_roll(noise_rng=rng)):
+                                            config.train_data_iter.generate_diagonal_roll(rng=rng, noise_rng=rng)):
                     feed_dict = {x_in_diag_roll: x_valid_batch}
                     l = sess.run([log_probs_diag], feed_dict)
                     probs_x.append(np.diag(l[0]))
