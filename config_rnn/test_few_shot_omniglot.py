@@ -101,7 +101,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--config_name', type=str, required=True, help='name of the configuration')
 parser.add_argument('--seq_len', type=int, default=2,
                     help='sequence length = number of shots + 1 (do not forget +1 for the test image)')
-parser.add_argument('--batch_size', type=int, default=5, help='batch_size = K-way')
+parser.add_argument('--batch_size', type=int, default=20, help='batch_size = K-way')
 parser.add_argument('--n_trials', type=int, default=20, help='number of trials')
 parser.add_argument('--mask_dims', type=int, default=0, help='keep the dimensions with correlation > eps_corr')
 parser.add_argument('--eps_corr', type=float, default=0., help='minimum correlation')

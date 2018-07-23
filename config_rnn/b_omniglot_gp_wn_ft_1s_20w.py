@@ -5,26 +5,32 @@ from tensorflow.contrib.framework.python.ops import arg_scope
 import data_iter
 import nn_extra_gauss
 import nn_extra_nvp
+import utils
 from config_rnn import defaults
 
-batch_size = 32
+base_metadata_path = utils.find_model_metadata('metadata/', 'b_omniglot_gp_wn')
+
 sample_batch_size = 1
 n_samples = 4
 rng = np.random.RandomState(42)
-seq_len = defaults.seq_len
-eps_corr = defaults.eps_corr
-mask_dims = defaults.mask_dims
+seq_len = defaults.seq_len_few_shot  # 1-shot (2nd image is a test image)
+batch_size = defaults.batch_size_few_shot  # 20-way
+meta_batch_size = 8
+eps_corr = None
+mask_dims = False
 
 nonlinearity = tf.nn.elu
-weight_norm = False
+weight_norm = True
 
-train_data_iter = data_iter.OmniglotExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size,
-                                                        set='train', rng=rng, augment=True)
-test_data_iter = data_iter.OmniglotExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size, set='test',
-                                                       augment=False)
+train_data_iter = data_iter.OmniglotEpisodesDataIterator(seq_len=seq_len,
+                                                         batch_size=batch_size,
+                                                         meta_batch_size=meta_batch_size,
+                                                         set='train',
+                                                         rng=rng,
+                                                         augment=True)
 
 test_data_iter2 = data_iter.OmniglotTestBatchSeqDataIterator(seq_len=seq_len,
-                                                             batch_size=5,
+                                                             batch_size=batch_size,
                                                              set='test',
                                                              rng=rng,
                                                              augment=True)
@@ -36,18 +42,11 @@ ndim = np.prod(obs_shape[1:])
 corr_init = np.ones((ndim,), dtype='float32') * 0.1
 
 optimizer = 'rmsprop'
-learning_rate = 0.001 / 2.
-scale_student_grad = 0.
-max_iter = 200000
+learning_rate = 0.00003 / 2.
+lr_decay = 0.999995
+scale_student_grad = 1.
+max_iter = 50000
 save_every = 1000
-student_grad_schedule = {0: 0., 100: 0.1}
-learning_rate_schedule = {}
-prev_lr = learning_rate
-for i in range(max_iter):
-    learning_rate_schedule[i] = prev_lr * 0.999995
-    prev_lr = learning_rate_schedule[i]
-for i in range(100, max_iter):
-    learning_rate_schedule[i] *= 1.5
 
 nvp_layers = []
 nvp_dense_layers = []
@@ -205,5 +204,8 @@ def build_nvp_dense_model():
                                             weight_norm=weight_norm))
 
 
-def loss(log_probs):
-    return -tf.reduce_mean(log_probs)
+def loss(log_probs, epsilon=1e-12):
+    log_probs = tf.reshape(log_probs, (meta_batch_size, batch_size, seq_len))
+    log_probs = log_probs[:, :, -1]
+    sm_probs = tf.nn.softmax(log_probs, axis=-1) + epsilon
+    return -tf.reduce_mean(tf.log(sm_probs[:, 0]))

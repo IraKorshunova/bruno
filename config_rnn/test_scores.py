@@ -18,9 +18,11 @@ import matplotlib.pyplot as plt
 parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--config_name', type=str, required=True, help='Configuration name')
 parser.add_argument('--set', type=str, default='test', help='train or test set?')
-parser.add_argument('--seq_len', type=int, default=20, help='sequence length')
+parser.add_argument('--seq_len', type=int, default=100, help='sequence length')
 parser.add_argument('--mask_dims', type=int, default=0, help='keep the dimensions with correlation > eps_corr?')
 parser.add_argument('--eps_corr', type=float, default=0., help='minimum correlation')
+parser.add_argument('--same_class', type=int, default=1, help='sequences from the same class?')
+parser.add_argument('--n_batches', type=int, default=1000, help='how many batches to average over')
 args, _ = parser.parse_known_args()
 defaults.set_parameters(args)
 print('input args:\n', json.dumps(vars(args), indent=4, separators=(',', ':')))
@@ -56,18 +58,17 @@ with tf.Session() as sess:
     print('restoring parameters from', ckpt_file)
     saver.restore(sess, tf.train.latest_checkpoint(save_dir))
 
-    n_iter = 1000
-    batch_idxs = range(0, n_iter)
+    batch_idxs = range(0, args.n_batches)
 
     scores = []
     prior_ll = []
     probs_x = []
-    for _, x_batch in zip(batch_idxs, data_iter.generate_diagonal_roll()):
+    for _, x_batch in zip(batch_idxs, data_iter.generate_diagonal_roll(same_class=args.same_class, noise_rng=rng)):
         lp_x, lp_z, lp_prior_z = sess.run([log_probs, latent_log_probs, latent_log_probs_prior],
                                           feed_dict={x_in: x_batch})
         score = np.diag(lp_z - lp_prior_z)
         scores.append(score)
-        prior_ll.append(lp_x[0])
+        prior_ll.append(lp_x[0, 0])
         probs_x.append(np.diag(lp_x))
 
     scores = np.asarray(scores)
@@ -78,6 +79,10 @@ with tf.Session() as sess:
     prior_ll_mean = np.mean(prior_ll)
     print('LL:', prior_ll_mean)
     print('bits per dim:', -1. * prior_ll_mean / config.ndim / np.log(2.))
+    print('log likelihood mean:')
+    ll_mean = np.mean(probs_x)
+    print('LL:', ll_mean)
+    print('bits per dim:', -1. * ll_mean / config.ndim / np.log(2.))
 
     target_path = save_dir
     fig = plt.figure(figsize=(4, 3))
@@ -86,13 +91,13 @@ with tf.Session() as sess:
     plt.scatter(range(len(scores_mean)), scores_mean, s=1.5, c='black')
     plt.xlabel('step')
     plt.ylabel(r'score ($\epsilon$=%s)' % args.eps_corr)
-    plt.savefig(target_path + '/scores_plot_eps%s_len%s_%s.png' % (args.eps_corr, args.seq_len, args.set),
-                bbox_inches='tight', dpi=600)
+    plt.savefig(
+        target_path + '/scores_plot_eps%s_len%s_%s_%s.png' % (args.eps_corr, args.seq_len, args.set, args.same_class),
+        bbox_inches='tight', dpi=600)
 
     probs_x = np.asarray(probs_x)
     print(probs_x.shape)
     nll = -1. * np.mean(probs_x, axis=0)
-    print(nll)
     print('NLL:', nll)
     print('bits per dim:', nll / config.ndim / np.log(2.))
 
@@ -102,6 +107,7 @@ with tf.Session() as sess:
     plt.plot(range(len(nll)), nll, 'black', linewidth=1.)
     plt.scatter(range(len(nll)), nll, s=1.5, c='black')
     plt.xlabel('step')
-    plt.ylabel(r'score ($\epsilon$=%s)' % args.eps_corr)
-    plt.savefig(target_path + '/nll_plot_eps%s_len%s_%s.png' % (args.eps_corr, args.seq_len, args.set),
-                bbox_inches='tight', dpi=600)
+    plt.ylabel(r'nll ($\epsilon$=%s)' % args.eps_corr)
+    plt.savefig(
+        target_path + '/nll_plot_eps%s_len%s_%s_%s.png' % (args.eps_corr, args.seq_len, args.set, args.same_class),
+        bbox_inches='tight', dpi=600)

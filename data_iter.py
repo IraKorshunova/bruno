@@ -1,4 +1,5 @@
 import numpy as np
+
 import utils
 
 
@@ -94,8 +95,9 @@ class OmniglotExchSeqDataIterator(object):
             x_batch += noise_rng.uniform(size=x_batch.shape)
             yield x_batch, y_batch
 
-    def generate_diagonal_roll(self, rng=None):
+    def generate_diagonal_roll(self, rng=None, same_class=True, noise_rng=None):
         rng = self.rng if rng is None else rng
+        noise_rng = self.rng if noise_rng is None else noise_rng
         batch_size = self.seq_len
 
         while True:
@@ -107,8 +109,16 @@ class OmniglotExchSeqDataIterator(object):
 
             sequence = np.zeros((1,) + self.get_observation_size(), dtype='float32')
             for k in range(self.seq_len):
-                sequence[0, k, :] = self.x[idxs[k], :]
-            sequence += rng.uniform(size=sequence.shape)
+                sequence[0, k] = self.x[idxs[k]]
+
+            if not same_class:
+                other_digits = list(self.classes)
+                other_digits.remove(j)
+                j2 = rng.choice(other_digits)
+                idxs = self.y2idxs[j2]
+                sequence[0, 0] = self.x[rng.choice(idxs)]
+
+            sequence += noise_rng.uniform(size=sequence.shape)
 
             for i in range(batch_size):
                 x_batch[i, :, :] = np.roll(sequence, i, axis=1)
@@ -305,7 +315,7 @@ class BaseExchSeqDataIterator(object):
         self.seq_len = seq_len
         self.rng = np.random.RandomState(42) if not rng else rng
         self.infinite = infinite
-        self.digits = digits
+        self.digits = digits if digits is not None else np.arange(self.n_classes)
 
         print(set, 'dataset size:', self.x.shape)
         print(set, 'N classes', self.n_classes)
@@ -380,8 +390,9 @@ class BaseExchSeqDataIterator(object):
             if not self.infinite:
                 break
 
-    def generate_diagonal_roll(self, rng=None):
+    def generate_diagonal_roll(self, same_class=True, rng=None, noise_rng=None):
         rng = self.rng if rng is None else rng
+        noise_rng = self.rng if noise_rng is None else noise_rng
         batch_size = self.seq_len
 
         while True:
@@ -394,11 +405,19 @@ class BaseExchSeqDataIterator(object):
 
             sequence = np.zeros((1,) + self.get_observation_size(), dtype='float32')
             for k in range(self.seq_len):
-                sequence[0, k, :] = self.x[idxs[k], :]
-            sequence += rng.uniform(size=sequence.shape)
+                sequence[0, k] = self.x[idxs[k]]
+
+            if not same_class:
+                other_digits = list(self.digits)
+                other_digits.remove(j)
+                j2 = rng.choice(other_digits)
+                idxs = self.y2idxs[j2]
+                sequence[0, 0] = self.x[rng.choice(idxs)]
+
+            sequence += noise_rng.uniform(size=sequence.shape)
 
             for i in range(batch_size):
-                x_batch[i, :, :] = np.roll(sequence, i, axis=1)
+                x_batch[i] = np.roll(sequence, i, axis=1)
 
             yield x_batch
 

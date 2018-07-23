@@ -14,6 +14,7 @@ import logger
 import utils
 
 matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
@@ -81,6 +82,9 @@ train_losses = []
 x_in_eval = tf.placeholder(tf.float32, shape=(config.batch_size,) + config.obs_shape)
 log_probs = model(x_in_eval)[0]
 eval_loss = config.eval_loss(log_probs) if hasattr(config, 'eval_loss') else config.loss(log_probs)
+
+x_in_diag_roll = tf.placeholder(tf.float32, shape=(config.seq_len,) + config.obs_shape)
+log_probs_diag = model(x_in_diag_roll)[0]
 
 for i in range(args.nr_gpu):
     xs.append(tf.placeholder(tf.float32, shape=(config.batch_size / args.nr_gpu,) + config.obs_shape))
@@ -211,6 +215,26 @@ with tf.Session() as sess:
                 losses_eval_valid.append(avg_loss)
                 print('valid loss', avg_loss)
 
+                probs_x = []
+                rng = np.random.RandomState(42)
+                for _, x_valid_batch in zip(range(0, config.n_valid_batches * 10),
+                                            config.valid_data_iter.generate_diagonal_roll(noise_rng=rng)):
+                    feed_dict = {x_in_diag_roll: x_valid_batch}
+                    l = sess.run([log_probs_diag], feed_dict)
+                    probs_x.append(np.diag(l[0]))
+
+                probs_x = np.asarray(probs_x)
+                nll = -1. * np.mean(probs_x, axis=0)
+                fig = plt.figure(figsize=(4, 3))
+                plt.grid(True, which="both", ls="-", linewidth='0.2')
+                plt.plot(range(len(nll)), nll, 'black', linewidth=1.)
+                plt.scatter(range(len(nll)), nll, s=1.5, c='black')
+                plt.xlabel('step')
+                plt.ylabel(r'nll')
+                plt.savefig(
+                    save_dir + '/nll_plot_valid_%s.png' % iteration,
+                    bbox_inches='tight', dpi=600)
+
                 losses = []
                 rng = np.random.RandomState(42)
                 for _, x_valid_batch in zip(range(0, config.n_valid_batches * 10),
@@ -221,6 +245,26 @@ with tf.Session() as sess:
                 avg_loss = np.mean(np.asarray(losses), axis=0)
                 losses_eval_train.append(avg_loss)
                 print('train loss', avg_loss)
+
+                probs_x = []
+                rng = np.random.RandomState(42)
+                for _, x_valid_batch in zip(range(0, config.n_valid_batches),
+                                            config.train_data_iter.generate_diagonal_roll(noise_rng=rng)):
+                    feed_dict = {x_in_diag_roll: x_valid_batch}
+                    l = sess.run([log_probs_diag], feed_dict)
+                    probs_x.append(np.diag(l[0]))
+
+                probs_x = np.asarray(probs_x)
+                nll = -1. * np.mean(probs_x, axis=0)
+                fig = plt.figure(figsize=(4, 3))
+                plt.grid(True, which="both", ls="-", linewidth='0.2')
+                plt.plot(range(len(nll)), nll, 'black', linewidth=1.)
+                plt.scatter(range(len(nll)), nll, s=1.5, c='black')
+                plt.xlabel('step')
+                plt.ylabel(r'nll')
+                plt.savefig(
+                    save_dir + '/nll_plot_train_%s.png' % iteration,
+                    bbox_inches='tight', dpi=600)
 
             if (iteration + 1) % config.save_every == 0:
                 print('Saving model (iteration %s):' % iteration, experiment_id)
