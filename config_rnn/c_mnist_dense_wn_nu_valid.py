@@ -44,6 +44,7 @@ save_every = 1000
 validate_every = 1000
 n_valid_batches = 20
 
+scale_student_grad = 0.
 student_grad_schedule = {0: 0., 100: 1.}
 
 

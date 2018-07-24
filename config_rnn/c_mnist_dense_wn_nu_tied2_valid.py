@@ -37,6 +37,7 @@ print('obs shape', obs_shape)
 
 ndim = np.prod(obs_shape[1:])
 corr_init = np.ones((ndim,), dtype='float32') * 0.1
+nu_init = 1000
 
 max_iter = 200000
 save_every = 1000
@@ -45,7 +46,6 @@ n_valid_batches = 20
 
 scale_student_grad = 0.
 student_grad_schedule = {0: 0., 100: 1.}
-
 
 learning_rate = 0.001
 learning_rate_schedule = {
@@ -71,7 +71,8 @@ def build_model(x, init=False, sampling_mode=False):
 
         global student_layer
         if student_layer is None:
-            student_layer = nn_extra_student.StudentRecurrentLayer(shape=(ndim,), corr_init=corr_init, learn_mu=False)
+            student_layer = nn_extra_student.StudentRecurrentLayer(shape=(ndim,), corr_init=corr_init, learn_mu=False,
+                                                                   nu_init=nu_init, tied_nu=True)
 
         x_shape = nn_extra_nvp.int_shape(x)
         x_bs = tf.reshape(x, (x_shape[0] * x_shape[1], x_shape[2], x_shape[3], x_shape[4]))
@@ -94,6 +95,7 @@ def build_model(x, init=False, sampling_mode=False):
         latent_log_probs = []
         latent_log_probs_prior = []
         student_states = []
+        student_betas = []
 
         if mask_dims:
             mask_dim = tf.greater(student_layer.corr, tf.ones_like(student_layer.corr) * eps_corr)
@@ -109,6 +111,7 @@ def build_model(x, init=False, sampling_mode=False):
                     z_samples.append(z_sample)
                 else:
                     student_states.append(student_layer.current_distribution)
+                    student_betas.append(tf.convert_to_tensor(student_layer._state.beta))
                     latent_log_prob = student_layer.get_log_likelihood(z_vec[:, i, :], mask_dim=mask_dim)
                     latent_log_probs.append(latent_log_prob)
 
@@ -145,7 +148,7 @@ def build_model(x, init=False, sampling_mode=False):
         latent_log_probs = tf.stack(latent_log_probs, axis=1)
         latent_log_probs_prior = tf.stack(latent_log_probs_prior, axis=1)
 
-        return log_probs, latent_log_probs, latent_log_probs_prior, z_vec, student_states
+        return log_probs, latent_log_probs, latent_log_probs_prior, z_vec, student_states, student_betas
 
 
 def build_nvp_dense_model():
@@ -160,7 +163,3 @@ def build_nvp_dense_model():
 
 def loss(log_probs):
     return -tf.reduce_mean(log_probs)
-
-
-def eval_loss(log_probs):
-    return -tf.reduce_mean(log_probs, axis=0)

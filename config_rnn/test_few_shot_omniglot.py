@@ -2,17 +2,19 @@ import argparse
 import importlib
 import json
 import os
-import sys
 from collections import defaultdict
 
 import numpy as np
 import tensorflow as tf
 
-import logger
 import utils
 from config_rnn import defaults
 
 np.set_printoptions(suppress=True)
+
+
+def softmax(x):
+    return np.exp(x - max(x)) / sum(np.exp(x - max(x)))
 
 
 def classify(config_name, seq_len, n_trials, batch_size):
@@ -25,10 +27,10 @@ def classify(config_name, seq_len, n_trials, batch_size):
 
     assert seq_len == config.seq_len
 
-    utils.autodir('logs')
-    sys.stdout = logger.Logger(
-        'logs/%s_test_class_%s_%s_%s.log' % (expid, n_trials, config.seq_len, batch_size))
-    sys.stderr = sys.stdout
+    # utils.autodir('logs')
+    # sys.stdout = logger.Logger(
+    #     'logs/%s_test_class_%s_%s_%s.log' % (expid, n_trials, config.seq_len, batch_size))
+    # sys.stderr = sys.stdout
 
     print('Building the model', expid)
     model = tf.make_template('model', config.build_model)
@@ -62,10 +64,6 @@ def classify(config_name, seq_len, n_trials, batch_size):
                 y_true = int(y_batch[0, -1])
 
                 log_p = sess.run(log_probs, feed_dict={x_in: x_batch})
-                if np.isnan(np.min(log_p)):
-                    print(log_p, 'nans!')
-                    sys.exit(0)
-
                 log_p = log_p.reshape((data_iter.batch_size, config.seq_len))[:, -1]
 
                 x_number2scores[x_number].append(log_p)
@@ -78,6 +76,7 @@ def classify(config_name, seq_len, n_trials, batch_size):
             for k, v in x_number2scores.items():
                 y_true = x_number2true_y[k]
                 avg_score = np.mean(np.asarray(v), axis=0)
+                print(softmax(avg_score))
                 max_idx = np.argmax(avg_score)
                 if x_number2ys[k][max_idx] == y_true:
                     n_correct += 1

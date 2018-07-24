@@ -424,6 +424,28 @@ class BaseExchSeqDataIterator(object):
             if not self.infinite:
                 break
 
+    def generate_1class(self, rng=None, noise_rng=None):
+        rng = self.rng if rng is None else rng
+        noise_rng = self.rng if noise_rng is None else noise_rng
+
+        while True:
+            x_batch = np.zeros((self.batch_size,) + self.get_observation_size(), dtype='float32')
+
+            for i in range(self.batch_size):
+                j = 0
+                idxs = self.y2idxs[j]
+                assert len(idxs) >= self.seq_len
+                rng.shuffle(idxs)
+
+                for k in range(self.seq_len):
+                    x_batch[i, k, :] = self.x[idxs[k], :]
+
+            x_batch += noise_rng.uniform(size=x_batch.shape)
+            yield x_batch
+
+            if not self.infinite:
+                break
+
 
 class BaseTestBatchSeqDataIterator(object):
     def __init__(self, seq_len, set='train', dataset='mnist', rng=None, infinite=True, digits=None):

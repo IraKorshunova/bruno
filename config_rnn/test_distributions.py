@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
-parser.add_argument('-c', '--config_name', type=str,required=True, help='Configuration name')
+parser.add_argument('-c', '--config_name', type=str, required=True, help='Configuration name')
 parser.add_argument('--set', type=str, default='test', help='train or test set?')
 parser.add_argument('--seq_len', type=int, default=20, help='sequence length')
 parser.add_argument('--mask_dims', type=int, default=0, help='keep the dimensions with correlation > eps_corr?')
@@ -45,8 +45,9 @@ all_params = tf.trainable_variables()
 x_in = tf.placeholder(tf.float32, shape=(1,) + config.obs_shape)
 model_output = model(x_in)
 log_probs, latent_log_probs, latent_log_probs_prior = model_output[0], model_output[1], model_output[2]
-student_states = model_output[4]
 z_vec = model_output[3]
+student_states = model_output[4]
+betas = model_output[5]
 
 saver = tf.train.Saver()
 
@@ -79,9 +80,26 @@ with tf.Session() as sess:
     log_probs = []
     for _, x_batch in zip(batch_idxs, data_iter.generate_diagonal_roll()):
         x_batch = x_batch[:1]
-        lp_x, lp_z, lp_prior_z, states, z_vec = sess.run(
-            [log_probs, latent_log_probs, latent_log_probs_prior, student_states, z_vec],
+        lp_x, lp_z, lp_prior_z, states, z, bs = sess.run(
+            [log_probs, latent_log_probs, latent_log_probs_prior, student_states, z_vec, betas],
             feed_dict={x_in: x_batch})
+
+        x_plt = x_batch[0].swapaxes(0, 1)
+        x_plt = x_plt.reshape((28, config.seq_len * 28))
+
+        print(len(bs))
+        bs_argmax = None
+        b = np.zeros((args.seq_len, config.ndim))
+        zs = np.zeros((args.seq_len, config.ndim))
+        for i in range(len(bs)):
+            print(bs[i])
+            print(bs[i].shape)
+            b[i, :] = bs[i]
+            zs[i, :] = z[0, i]
+            bs_argmax = np.argmax(bs[i])
+            print('-----------------------')
+        print(len(bs))
+        print(bs_argmax)
 
         score = lp_z - lp_prior_z
         sigma = np.zeros((args.seq_len, config.ndim))
@@ -99,19 +117,45 @@ with tf.Session() as sess:
             sigma[i] = s
             mu[i] = m
             for j in range(config.ndim):
+
                 if corr[j] > args.eps_corr:
                     if n is None:
-                        probs[i, j] = gauss_pdf_1d(z_vec[0, i, j], m[0, j], s[0, j])
+                        probs[i, j] = gauss_pdf_1d(z[0, i, j], m[0, j], s[0, j])
                     else:
-                        probs[i, j] = student_pdf_1d(z_vec[0, i, j], m[0, j], s[0, j], n[0, j])
-
-        print(lp_x)
-        print(score)
+                        probs[i, j] = student_pdf_1d(z[0, i, j], m[0, j], s[0, j], n[0, j])
 
         target_path = save_dir
         fig = plt.figure()
-        plt.matshow(probs.T)
+        plt.matshow(b.T)
+        plt.colorbar()
         plt.xlabel('steps')
         plt.ylabel('dimensions')
-        plt.savefig(target_path + '/probs_%s.png' % args.eps_corr,
+        plt.savefig(target_path + '/betas_%s.png' % args.eps_corr,
                     bbox_inches='tight', dpi=1000)
+
+        fig = plt.figure()
+        plt.matshow(nu.T)
+        plt.colorbar()
+        plt.xlabel('steps')
+        plt.ylabel('dimensions')
+        plt.savefig(target_path + '/nu_%s.png' % args.eps_corr,
+                    bbox_inches='tight', dpi=1000)
+
+        fig = plt.figure()
+        plt.hist(zs[:, bs_argmax])
+        print('max z idx', np.argmax(zs[:, bs_argmax]))
+        plt.xlabel('steps')
+        plt.ylabel('dimensions')
+        plt.savefig(target_path + '/z_hist_%s.png' % args.eps_corr,
+                    bbox_inches='tight', dpi=1000)
+        my_dpi = 600
+        plt.figure(figsize=(28. * config.obs_shape[0] / my_dpi, (28 * 28) / my_dpi),
+                   dpi=my_dpi,
+                   frameon=False)
+        plt.imshow(x_plt, cmap='gray', interpolation='None')
+        plt.xticks([])
+        plt.yticks([])
+        plt.axis('off')
+        plt.savefig(target_path + '/x_sequence.png',
+                    bbox_inches='tight')
+        plt.close('all')

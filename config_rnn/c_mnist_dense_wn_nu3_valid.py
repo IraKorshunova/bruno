@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.framework.python.ops import arg_scope
+
 import data_iter
 import nn_extra_nvp
 import nn_extra_student
@@ -36,7 +37,7 @@ print('obs shape', obs_shape)
 
 ndim = np.prod(obs_shape[1:])
 corr_init = np.ones((ndim,), dtype='float32') * 0.1
-nu_init = 100
+nu_init = 1000
 
 max_iter = 200000
 save_every = 1000

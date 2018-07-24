@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 parser = argparse.ArgumentParser()
 parser.add_argument('--config_name', type=str, required=True, help='name of the configuration')
 parser.add_argument('--seq_len', type=int, default=2, help='sequence length')
-parser.add_argument('--set', type=str, default='test', help='train or test set?')
+parser.add_argument('--set', type=str, default='train', help='train or test set?')
 args, _ = parser.parse_known_args()
 defaults.set_parameters(args)
 print('input args:\n', json.dumps(vars(args), indent=4, separators=(',', ':')))
@@ -49,7 +49,7 @@ experiment_id = os.path.dirname(save_dir)
 print('exp_id', experiment_id)
 
 # samples
-target_path = save_dir + '/hists_%s' % args.set
+target_path = save_dir + '/hists_%s_1class' % args.set
 utils.autodir(target_path)
 
 # create the model
@@ -82,7 +82,7 @@ with tf.Session() as sess:
     batch_idxs = range(0, 1)
 
     all_codes = None
-    for _, x_batch in zip(batch_idxs, data_iter.generate()):
+    for _, x_batch in zip(batch_idxs, data_iter.generate_1class()):
         codes = sess.run(z_codes, feed_dict={x_in: x_batch})
         print(codes.shape)
         all_codes = codes if all_codes is None else np.concatenate((codes, all_codes), axis=0)

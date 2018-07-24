@@ -3,13 +3,14 @@ import importlib
 import json
 import os
 import pickle
+
 import matplotlib
 import numpy as np
+
 import utils
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from matplotlib import colors as mcolors
 
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
@@ -35,22 +36,29 @@ l_avg_train = np.squeeze(d['losses_avg_train'])
 
 target_path = save_dir + '/learning_curves'
 utils.autodir(target_path)
-x_range = np.arange(len(l_avg_train))
-plt.plot(x_range, l_avg_train, 'green', linewidth=1.)
-plt.scatter(x_range, l_avg_train, s=1.5, c='green')
+
+# x_range = np.arange(len(l_avg_train))
+# plt.plot(x_range, l_avg_train, 'green', linewidth=1.)
+# plt.scatter(x_range, l_avg_train, s=1.5, c='green')
+# plt.xlabel(r'$steps$')
+# plt.ylabel('NLL')
+# plt.savefig(target_path + '/train_avg_loss.png',
+#             bbox_inches='tight', dpi=1000)
+
+n_points = len(l_valid)
+ndims = len(l_valid[0])
+n_iter = d['iteration']
+x_range = range(config.validate_every, n_iter + config.validate_every, config.validate_every)
+plt.plot(x_range, np.mean(l_valid, axis=1), 'green', linewidth=1.)
+plt.plot(x_range, np.mean(l_train, axis=1), 'red', linewidth=1.)
 plt.xlabel(r'$steps$')
 plt.ylabel('NLL')
-plt.savefig(target_path + '/train_avg_loss.png',
+plt.savefig(target_path + '/train_valid_loss.png',
             bbox_inches='tight', dpi=1000)
 
-# n_points = len(l_valid)
-# ndims = len(l_valid[0])
-# n_iter = d['iteration']
-# x_range = range(config.validate_every, n_iter + config.validate_every + 1, config.validate_every)
-#
-# target_path = save_dir + '/learning_curves'
-# utils.autodir(target_path)
-#
+target_path = save_dir + '/learning_curves'
+utils.autodir(target_path)
+
 # for d in range(ndims):
 #     print(d)
 #     l_valid_d = [l_valid[i][d] for i in range(n_points)]

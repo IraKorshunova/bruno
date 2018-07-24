@@ -39,7 +39,7 @@ saver = tf.train.Saver()
 
 with tf.Session() as sess:
     begin = time.time()
-    ckpt_file = save_dir + '/params_' + args.data_set + '.ckpt'
+    ckpt_file = save_dir + 'params.ckpt'
     print('restoring parameters from', ckpt_file)
     saver.restore(sess, tf.train.latest_checkpoint(save_dir))
 
@@ -58,8 +58,13 @@ with tf.Session() as sess:
     print('corr\n', corr)
 
     print('******* corr - nu ********')
-    for c, n in zip(corr[np.where(corr > 0.05)[0]], nu[np.where(corr > 0.05)[0]]):
-        print(c, n)
+    for c, n, v in zip(corr[np.where(corr > 0.05)[0]], nu[np.where(corr > 0.05)[0]], var[np.where(corr > 0.05)[0]]):
+        print(c, n, v)
+    print('--------------------------')
+
+    print('******* corr - nu ********')
+    for c, n, v in zip(corr[np.where(nu < 10)[0]], nu[np.where(nu < 10)[0]], var[np.where(nu < 10)[0]]):
+        print(c, n, v)
     print('--------------------------')
 
     n_remained = []
