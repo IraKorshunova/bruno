@@ -103,7 +103,6 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--config_name', type=str, required=True, help='name of the configuration')
 parser.add_argument('--seq_len', type=int, default=100, help='sequence length')
 parser.add_argument('--n_sequences', type=int, default=1, help='number of sequences')
-parser.add_argument('--eval_only_last', type=int, default=0, help='evaluate only p(last|all prev) for speed')
 parser.add_argument('--mask_dims', type=int, default=0, help='keep the dimensions with correlation > eps_corr')
 parser.add_argument('--eps_corr', type=float, default=0., help='minimum correlation')
 

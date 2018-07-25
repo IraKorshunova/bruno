@@ -73,7 +73,6 @@ def build_model(x, init=False, sampling_mode=False):
         if student_layer is None:
             student_layer = nn_extra_student.StudentRecurrentLayer(shape=(ndim,), corr_init=corr_init, learn_mu=False,
                                                                    nu_init=nu_init, tied_nu=True)
-
         x_shape = nn_extra_nvp.int_shape(x)
         x_bs = tf.reshape(x, (x_shape[0] * x_shape[1], x_shape[2], x_shape[3], x_shape[4]))
         x_bs_shape = nn_extra_nvp.int_shape(x_bs)

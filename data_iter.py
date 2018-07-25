@@ -412,7 +412,7 @@ class BaseExchSeqDataIterator(object):
                 other_digits.remove(j)
                 j2 = rng.choice(other_digits)
                 idxs = self.y2idxs[j2]
-                sequence[0, 0] = self.x[rng.choice(idxs)]
+                sequence[0, 0] = np.zeros_like(self.x[rng.choice(idxs)])
 
             sequence += noise_rng.uniform(size=sequence.shape)
 

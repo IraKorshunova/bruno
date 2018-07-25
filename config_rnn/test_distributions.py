@@ -73,39 +73,39 @@ with tf.Session() as sess:
 
     corr = config.student_layer.corr.eval().flatten()
 
-    batch_idxs = range(0, 1)
+    batch_idxs = range(0, 100)
 
     scores = []
     prior_ll = []
     log_probs = []
-    for _, x_batch in zip(batch_idxs, data_iter.generate_diagonal_roll()):
+    probs_gp = np.zeros((len(batch_idxs), args.seq_len, config.ndim))
+    probs_st = np.zeros((len(batch_idxs), args.seq_len, config.ndim))
+    for idx, x_batch in zip(batch_idxs, data_iter.generate_diagonal_roll()):
         x_batch = x_batch[:1]
         lp_x, lp_z, lp_prior_z, states, z, bs = sess.run(
             [log_probs, latent_log_probs, latent_log_probs_prior, student_states, z_vec, betas],
             feed_dict={x_in: x_batch})
 
-        x_plt = x_batch[0].swapaxes(0, 1)
-        x_plt = x_plt.reshape((28, config.seq_len * 28))
-
-        print(len(bs))
-        bs_argmax = None
-        b = np.zeros((args.seq_len, config.ndim))
-        zs = np.zeros((args.seq_len, config.ndim))
-        for i in range(len(bs)):
-            print(bs[i])
-            print(bs[i].shape)
-            b[i, :] = bs[i]
-            zs[i, :] = z[0, i]
-            bs_argmax = np.argmax(bs[i])
-            print('-----------------------')
-        print(len(bs))
-        print(bs_argmax)
+        # x_plt = x_batch[0].swapaxes(0, 1)
+        # x_plt = x_plt.reshape((28, config.seq_len * 28))
+        #
+        # bs_argmax = None
+        # b = np.zeros((args.seq_len, config.ndim))
+        # zs = np.zeros((args.seq_len, config.ndim))
+        # for i in range(len(bs)):
+        #     print(bs[i])
+        #     print(bs[i].shape)
+        #     b[i, :] = bs[i]
+        #     zs[i, :] = z[0, i]
+        #     bs_argmax = np.argmax(bs[i])
+        #     print('-----------------------')
+        # print(len(bs))
+        # print(bs_argmax)
 
         score = lp_z - lp_prior_z
         sigma = np.zeros((args.seq_len, config.ndim))
         mu = np.zeros((args.seq_len, config.ndim))
         nu = np.zeros((args.seq_len, config.ndim))
-        probs = np.zeros((args.seq_len, config.ndim))
         for i in range(len(states)):
             if len(states[i]) == 3:
                 m, s, n = states[i]
@@ -117,45 +117,58 @@ with tf.Session() as sess:
             sigma[i] = s
             mu[i] = m
             for j in range(config.ndim):
+                probs_gp[idx, i, j] = np.log(gauss_pdf_1d(z[0, i, j], m[0, j], s[0, j]))
+                probs_st[idx, i, j] = np.log(student_pdf_1d(z[0, i, j], m[0, j], s[0, j], n[0, j]))
 
-                if corr[j] > args.eps_corr:
-                    if n is None:
-                        probs[i, j] = gauss_pdf_1d(z[0, i, j], m[0, j], s[0, j])
-                    else:
-                        probs[i, j] = student_pdf_1d(z[0, i, j], m[0, j], s[0, j], n[0, j])
+    print(probs_gp.shape)
+    print(probs_st.shape)
+    probs_gp = np.sum(probs_gp, axis=-1).mean(axis=0)
+    probs_st = np.sum(probs_st, axis=-1).mean(axis=0)
 
-        target_path = save_dir
-        fig = plt.figure()
-        plt.matshow(b.T)
-        plt.colorbar()
-        plt.xlabel('steps')
-        plt.ylabel('dimensions')
-        plt.savefig(target_path + '/betas_%s.png' % args.eps_corr,
-                    bbox_inches='tight', dpi=1000)
+    target_path = save_dir
+    fig = plt.figure(figsize=(4, 3))
+    plt.grid(True, which="both", ls="-", linewidth='0.2')
+    plt.plot(range(len(probs_st)), probs_st, 'black', linewidth=1.)
+    plt.scatter(range(len(probs_st)), probs_st, s=1.5, c='black')
+    plt.plot(range(len(probs_gp)), probs_gp, 'red', linewidth=1.)
+    plt.scatter(range(len(probs_gp)), probs_gp, s=1.5, c='red')
+    plt.xlabel('step')
+    plt.savefig(
+        target_path + '/nll_plot.png',
+        bbox_inches='tight', dpi=600)
 
-        fig = plt.figure()
-        plt.matshow(nu.T)
-        plt.colorbar()
-        plt.xlabel('steps')
-        plt.ylabel('dimensions')
-        plt.savefig(target_path + '/nu_%s.png' % args.eps_corr,
-                    bbox_inches='tight', dpi=1000)
-
-        fig = plt.figure()
-        plt.hist(zs[:, bs_argmax])
-        print('max z idx', np.argmax(zs[:, bs_argmax]))
-        plt.xlabel('steps')
-        plt.ylabel('dimensions')
-        plt.savefig(target_path + '/z_hist_%s.png' % args.eps_corr,
-                    bbox_inches='tight', dpi=1000)
-        my_dpi = 600
-        plt.figure(figsize=(28. * config.obs_shape[0] / my_dpi, (28 * 28) / my_dpi),
-                   dpi=my_dpi,
-                   frameon=False)
-        plt.imshow(x_plt, cmap='gray', interpolation='None')
-        plt.xticks([])
-        plt.yticks([])
-        plt.axis('off')
-        plt.savefig(target_path + '/x_sequence.png',
-                    bbox_inches='tight')
-        plt.close('all')
+    # target_path = save_dir
+    # fig = plt.figure()
+    # plt.matshow(b.T)
+    # plt.colorbar()
+    # plt.xlabel('steps')
+    # plt.ylabel('dimensions')
+    # plt.savefig(target_path + '/betas_%s.png' % args.eps_corr,
+    #             bbox_inches='tight', dpi=1000)
+    #
+    # fig = plt.figure()
+    # plt.matshow(nu.T)
+    # plt.colorbar()
+    # plt.xlabel('steps')
+    # plt.ylabel('dimensions')
+    # plt.savefig(target_path + '/nu_%s.png' % args.eps_corr,
+    #             bbox_inches='tight', dpi=1000)
+    #
+    # fig = plt.figure()
+    # plt.hist(zs[:, bs_argmax])
+    # print('max z idx', np.argmax(zs[:, bs_argmax]))
+    # plt.xlabel('steps')
+    # plt.ylabel('dimensions')
+    # plt.savefig(target_path + '/z_hist_%s.png' % args.eps_corr,
+    #             bbox_inches='tight', dpi=1000)
+    # my_dpi = 600
+    # plt.figure(figsize=(28. * config.obs_shape[0] / my_dpi, (28 * 28) / my_dpi),
+    #            dpi=my_dpi,
+    #            frameon=False)
+    # plt.imshow(x_plt, cmap='gray', interpolation='None')
+    # plt.xticks([])
+    # plt.yticks([])
+    # plt.axis('off')
+    # plt.savefig(target_path + '/x_sequence.png',
+    #             bbox_inches='tight')
+    # plt.close('all')

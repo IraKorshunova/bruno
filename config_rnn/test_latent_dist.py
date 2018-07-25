@@ -49,7 +49,7 @@ experiment_id = os.path.dirname(save_dir)
 print('exp_id', experiment_id)
 
 # samples
-target_path = save_dir + '/hists_%s_1class' % args.set
+target_path = save_dir + '/hists_%s' % args.set
 utils.autodir(target_path)
 
 # create the model
@@ -82,7 +82,7 @@ with tf.Session() as sess:
     batch_idxs = range(0, 1)
 
     all_codes = None
-    for _, x_batch in zip(batch_idxs, data_iter.generate_1class()):
+    for _, x_batch in zip(batch_idxs, data_iter.generate()):
         codes = sess.run(z_codes, feed_dict={x_in: x_batch})
         print(codes.shape)
         all_codes = codes if all_codes is None else np.concatenate((codes, all_codes), axis=0)
