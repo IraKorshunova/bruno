@@ -390,7 +390,7 @@ class BaseExchSeqDataIterator(object):
             if not self.infinite:
                 break
 
-    def generate_diagonal_roll(self, same_class=True, rng=None, noise_rng=None):
+    def generate_diagonal_roll(self, same_class=True, same_image=False, rng=None, noise_rng=None):
         rng = self.rng if rng is None else rng
         noise_rng = self.rng if noise_rng is None else noise_rng
         batch_size = self.seq_len
@@ -405,7 +405,10 @@ class BaseExchSeqDataIterator(object):
 
             sequence = np.zeros((1,) + self.get_observation_size(), dtype='float32')
             for k in range(self.seq_len):
-                sequence[0, k] = self.x[idxs[k]]
+                if same_image:
+                    sequence[0, k] = self.x[idxs[0]]
+                else:
+                    sequence[0, k] = self.x[idxs[k]]
 
             if not same_class:
                 other_digits = list(self.digits)

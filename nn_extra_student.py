@@ -150,9 +150,9 @@ class StudentRecurrentLayer(object):
     def get_log_likelihood(self, observation, mask_dim=None, eps=1e-12):
         x = observation
         mu, var, nu = self.current_distribution
-        var += eps
+        # var += eps
         ln_gamma_quotient = tf.lgamma((1. + nu) / 2.) - tf.lgamma(nu / 2.)
-        ln_nom = (-(1. + nu) / 2.) * tf.log(1. + tf.square(x - mu) / ((nu - 2.) * var))
+        ln_nom = (-(1. + nu) / 2.) * tf.log1p(tf.square(x - mu) / ((nu - 2.) * var))
         ln_denom = 0.5 * tf.log((nu - 2.) * np.pi * var)
         log_pdf = ln_gamma_quotient + ln_nom - ln_denom
         if mask_dim is not None:
@@ -163,9 +163,9 @@ class StudentRecurrentLayer(object):
     def get_log_likelihood_under_prior(self, observation, mask_dim=None, eps=1e-12):
         x = observation
         mu, var, nu = self.prior
-        var += eps
+        # var += eps
         ln_gamma_quotient = tf.lgamma((1. + nu) / 2.) - tf.lgamma(nu / 2.)
-        ln_nom = (-(1. + nu) / 2.) * tf.log(1. + (1. / (nu - 2.)) * (1. / var * tf.square(x - mu)))
+        ln_nom = (-(1. + nu) / 2.) * tf.log1p((tf.square(x - mu) / ((nu - 2.) * var)))
         ln_denom = 0.5 * tf.log((nu - 2.) * np.pi * var)
         log_pdf = ln_gamma_quotient + ln_nom - ln_denom
         if mask_dim is not None:

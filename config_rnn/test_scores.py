@@ -21,7 +21,8 @@ parser.add_argument('--set', type=str, default='test', help='train or test set?'
 parser.add_argument('--seq_len', type=int, default=100, help='sequence length')
 parser.add_argument('--mask_dims', type=int, default=0, help='keep the dimensions with correlation > eps_corr?')
 parser.add_argument('--eps_corr', type=float, default=0., help='minimum correlation')
-parser.add_argument('--same_class', type=int, default=1, help='sequences from the same class?')
+parser.add_argument('--same_class', type=int, default=1, help='sequences from the same class')
+parser.add_argument('--same_image', type=int, default=0, help='sequences from the same image')
 parser.add_argument('--n_batches', type=int, default=1000, help='how many batches to average over')
 args, _ = parser.parse_known_args()
 defaults.set_parameters(args)
@@ -47,6 +48,7 @@ all_params = tf.trainable_variables()
 x_in = tf.placeholder(tf.float32, shape=(config.seq_len,) + config.obs_shape)
 model_output = model(x_in)
 log_probs, latent_log_probs, latent_log_probs_prior = model_output[0], model_output[1], model_output[2]
+z_vec = model_output[3]
 
 saver = tf.train.Saver()
 
@@ -63,13 +65,28 @@ with tf.Session() as sess:
     scores = []
     prior_ll = []
     probs_x = []
-    for _, x_batch in zip(batch_idxs, data_iter.generate_diagonal_roll(same_class=args.same_class, noise_rng=rng)):
-        lp_x, lp_z, lp_prior_z = sess.run([log_probs, latent_log_probs, latent_log_probs_prior],
-                                          feed_dict={x_in: x_batch})
+    for idx, x_batch in zip(batch_idxs, data_iter.generate_diagonal_roll(same_class=args.same_class, noise_rng=rng,
+                                                                         same_image=args.same_image)):
+        lp_x, lp_z, lp_prior_z, z = sess.run([log_probs, latent_log_probs, latent_log_probs_prior, z_vec],
+                                             feed_dict={x_in: x_batch})
+        print(z_vec.shape)
         score = np.diag(lp_z - lp_prior_z)
         scores.append(score)
         prior_ll.append(lp_x[0, 0])
         probs_x.append(np.diag(lp_x))
+
+        target_path = save_dir
+        fig = plt.figure(figsize=(4, 3))
+        plt.grid(True, which="both", ls="-", linewidth='0.2')
+        plt.plot(range(len(probs_x[-1])), probs_x[-1], 'black', linewidth=1.)
+        plt.scatter(range(len(probs_x[-1])), probs_x[-1], s=1.5, c='black')
+        plt.xlabel('step')
+        plt.ylabel(r'nll ($\epsilon$=%s)' % args.eps_corr)
+        plt.savefig(
+            target_path + '/nll_plot_%s_eps%s_len%s_%s_class%s_img%s_%s.png' % (
+                idx, args.eps_corr, args.seq_len, args.set, args.same_class, args.same_image, args.n_batches),
+            bbox_inches='tight', dpi=600)
+        plt.close()
 
     scores = np.asarray(scores)
     print(scores.shape)
@@ -92,7 +109,8 @@ with tf.Session() as sess:
     plt.xlabel('step')
     plt.ylabel(r'score ($\epsilon$=%s)' % args.eps_corr)
     plt.savefig(
-        target_path + '/scores_plot_eps%s_len%s_%s_%s.png' % (args.eps_corr, args.seq_len, args.set, args.same_class),
+        target_path + '/scores_plot_eps%s_len%s_%s_class%s_img%s.png' % (
+            args.eps_corr, args.seq_len, args.set, args.same_class, args.same_image),
         bbox_inches='tight', dpi=600)
 
     probs_x = np.asarray(probs_x)
@@ -109,5 +127,6 @@ with tf.Session() as sess:
     plt.xlabel('step')
     plt.ylabel(r'nll ($\epsilon$=%s)' % args.eps_corr)
     plt.savefig(
-        target_path + '/nll_plot_eps%s_len%s_%s_%s.png' % (args.eps_corr, args.seq_len, args.set, args.same_class),
+        target_path + '/nll_plot_eps%s_len%s_%s_class%s_img%s_%s.png' % (
+            args.eps_corr, args.seq_len, args.set, args.same_class, args.same_image, args.n_batches),
         bbox_inches='tight', dpi=600)

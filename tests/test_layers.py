@@ -13,18 +13,18 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-batch_size = 1000
+batch_size = 100
 seq_len = 100
 p = 1
 mu = np.ones((p,), dtype='float32') * 0.
 recursive = True
 
-g_nu = np.ones((p,), dtype='float32') * 150.
+g_nu = np.ones((p,), dtype='float32') * 100.
 g_var = np.ones((p,), dtype='float32') * 1.
-g_corr = np.ones((p,), dtype='float32') * 0.9
+g_corr = np.ones((p,), dtype='float32') * 0.001
 g_cov = g_corr
 
-x_cov = np.ones((p,), dtype='float32') * 0.01
+x_cov = np.ones((p,), dtype='float32') * 0.9
 x_var = np.ones((p,), dtype='float32') * 1.
 
 
@@ -54,13 +54,15 @@ K = create_covariance_matrix(seq_len, p, x_cov, x_var)
 xs = []
 for i in range(batch_size):
     phi = np.tile(mu, (seq_len, 1)).flatten()
-    x1 = rng.multivariate_normal(phi, K)
+    # x1 = rng.multivariate_normal(phi, K)
+    x1 = multivariate_student.sample(phi=phi, K=K, nu=30, rng=rng)
     x1 = x1.reshape((seq_len, p))
     x1 = np.float32(x1)
     xs.append(x1[None, :, :])
 
 x = np.concatenate(xs, axis=0)
 print('shape x', x.shape)
+x[0][10] -= 10
 
 x_var = tf.placeholder(tf.float32, shape=(batch_size, seq_len, p))
 l_rnn = nn_extra_student.StudentRecurrentLayer(shape=(p,), nu_init=g_nu, mu_init=mu, var_init=g_var, corr_init=g_corr)
@@ -93,7 +95,7 @@ for i in range(seq_len):
     print('step', i)
     print('prob', probs_out[i])
     print('prob_gauss', probs_out_gauss[i])
-    print('x_step', x[:, i, :])
+    print(x[0, i])
 
 probs_out_1 = np.asarray(probs_out).mean(axis=1)
 probs_out_gauss_1 = np.asarray(probs_out_gauss).mean(axis=1)
@@ -111,8 +113,8 @@ plt.savefig(
 
 print('---------------')  # numpy
 print('\n ****** NUMPY ******')
-x1 = xs[0][0]
-x2 = xs[1][0]
+x1 = x[0]
+x2 = x[1]
 print(x1.shape, x2.shape)
 
 probs_k1, probs_k2 = [], []
@@ -143,9 +145,11 @@ for i in range(1, seq_len):
                                                        verbose=False)
     print('step', i)
     print('prob', np.log(p_next1), np.log(p_next2))
+    print(np.log(p_next1), probs_out[i][0])
+    print(np.log(p_next2), probs_out[i][1])
+    print('x_step', x1[i, :], x2[i, :])
     assert np.isclose(np.log(p_next1), probs_out[i][0], atol=1e-3, rtol=1e-03)
     assert np.isclose(np.log(p_next2), probs_out[i][1], atol=1e-3, rtol=1e-03)
-    print('x_step', x1[i, :], x2[i, :])
     print('---------------')
 
 # check with joint probability
