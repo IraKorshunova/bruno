@@ -160,6 +160,16 @@ class StudentRecurrentLayer(object):
         else:
             return tf.reduce_sum(log_pdf, 1)
 
+    def get_log_likelihood_per_dim(self, observation, mask_dim=None, eps=1e-12):
+        x = observation
+        mu, var, nu = self.current_distribution
+        # var += eps
+        ln_gamma_quotient = tf.lgamma((1. + nu) / 2.) - tf.lgamma(nu / 2.)
+        ln_nom = (-(1. + nu) / 2.) * tf.log1p(tf.square(x - mu) / ((nu - 2.) * var))
+        ln_denom = 0.5 * tf.log((nu - 2.) * np.pi * var)
+        log_pdf = ln_gamma_quotient + ln_nom - ln_denom
+        return log_pdf
+
     def get_log_likelihood_under_prior(self, observation, mask_dim=None, eps=1e-12):
         x = observation
         mu, var, nu = self.prior

@@ -16,16 +16,17 @@ import matplotlib.pyplot as plt
 batch_size = 100
 seq_len = 100
 p = 1
-mu = np.ones((p,), dtype='float32') * 0.
 recursive = True
 
-g_nu = np.ones((p,), dtype='float32') * 100.
-g_var = np.ones((p,), dtype='float32') * 1.
+g_nu = np.ones((p,), dtype='float32') * 2.1
+g_var = np.ones((p,), dtype='float32') * 1.2
 g_corr = np.ones((p,), dtype='float32') * 0.001
-g_cov = g_corr
+g_cov = g_corr * g_var
+g_mu = np.ones((p,), dtype='float32') * 0.
 
-x_cov = np.ones((p,), dtype='float32') * 0.9
-x_var = np.ones((p,), dtype='float32') * 1.
+x_cov = np.ones((p,), dtype='float32') * 0.05
+x_var = np.ones((p,), dtype='float32') * 0.1
+x_mu = -np.ones((p,), dtype='float32') * 1.
 
 
 # create covariance matrix
@@ -53,20 +54,20 @@ def create_covariance_matrix(n, p, cov_u, var_u):
 K = create_covariance_matrix(seq_len, p, x_cov, x_var)
 xs = []
 for i in range(batch_size):
-    phi = np.tile(mu, (seq_len, 1)).flatten()
-    # x1 = rng.multivariate_normal(phi, K)
-    x1 = multivariate_student.sample(phi=phi, K=K, nu=30, rng=rng)
+    phi = np.tile(x_mu, (seq_len, 1)).flatten()
+    x1 = rng.multivariate_normal(phi, K)
+    # x1 = multivariate_student.sample(phi=phi, K=K, nu=30, rng=rng)
     x1 = x1.reshape((seq_len, p))
     x1 = np.float32(x1)
     xs.append(x1[None, :, :])
 
 x = np.concatenate(xs, axis=0)
 print('shape x', x.shape)
-x[0][10] -= 10
+# x[0][10] -= 10
 
 x_var = tf.placeholder(tf.float32, shape=(batch_size, seq_len, p))
-l_rnn = nn_extra_student.StudentRecurrentLayer(shape=(p,), nu_init=g_nu, mu_init=mu, var_init=g_var, corr_init=g_corr)
-l_rnn2 = nn_extra_gauss.GaussianRecurrentLayer(shape=(p,), mu_init=mu, var_init=g_var, corr_init=g_corr)
+l_rnn = nn_extra_student.StudentRecurrentLayer(shape=(p,), nu_init=g_nu, mu_init=g_mu, var_init=g_var, corr_init=g_corr)
+l_rnn2 = nn_extra_gauss.GaussianRecurrentLayer(shape=(p,), mu_init=g_mu, var_init=g_var, corr_init=g_corr)
 
 probs = []
 probs_gauss = []
@@ -120,9 +121,9 @@ print(x1.shape, x2.shape)
 probs_k1, probs_k2 = [], []
 for k in range(p):
     probs_k1.append(
-        multivariate_student.pdf(x1[0, k:k + 1], phi=mu[k:k + 1], K=g_var[None, k:k + 1], nu=g_nu[k]))
+        multivariate_student.pdf(x1[0, k:k + 1], phi=g_mu[k:k + 1], K=g_var[None, k:k + 1], nu=g_nu[k]))
     probs_k2.append(
-        multivariate_student.pdf(x2[0, k:k + 1], phi=mu[k:k + 1], K=g_var[None, k:k + 1], nu=g_nu[k:k + 1]))
+        multivariate_student.pdf(x2[0, k:k + 1], phi=g_mu[k:k + 1], K=g_var[None, k:k + 1], nu=g_nu[k:k + 1]))
 prob_1 = np.prod(probs_k1)
 prob_2 = np.prod(probs_k2)
 print('step', 0)
@@ -136,12 +137,12 @@ for i in range(1, seq_len):
     p_next1 = utils_stats.predictive_mdim_student_prob(x_1n=x1[:i], x_next=x1[i],
                                                        cov_u=g_cov,
                                                        var_u=g_var,
-                                                       mu=mu, nu=g_nu, recursive=recursive,
+                                                       mu=g_mu, nu=g_nu, recursive=recursive,
                                                        verbose=False)
     p_next2 = utils_stats.predictive_mdim_student_prob(x_1n=x2[:i], x_next=x2[i],
                                                        cov_u=g_cov,
                                                        var_u=g_var,
-                                                       mu=mu, nu=g_nu, recursive=recursive,
+                                                       mu=g_mu, nu=g_nu, recursive=recursive,
                                                        verbose=False)
     print('step', i)
     print('prob', np.log(p_next1), np.log(p_next2))
@@ -159,21 +160,21 @@ for j in range(2, seq_len + 1):
     for i in range(p):
         x_2n = x1[:j, i:i + 1].T
         K = create_covariance_matrix(j, 1, g_cov[i], g_var[i])
-        pp_joint_n2 = multivariate_student.pdf(x_2n, phi=np.zeros_like(x_2n) + mu[i], K=K, nu=g_nu[i])
+        pp_joint_n2 = multivariate_student.pdf(x_2n, phi=np.zeros_like(x_2n) + g_mu[i], K=K, nu=g_nu[i])
 
         x_1n = x1[:j - 1, i:i + 1].T
         K = create_covariance_matrix(j - 1, 1, g_cov[i], g_var[i])
-        pp_joint_n1 = multivariate_student.pdf(x_1n, phi=np.zeros_like(x_1n) + mu[i], K=K, nu=g_nu[i])
+        pp_joint_n1 = multivariate_student.pdf(x_1n, phi=np.zeros_like(x_1n) + g_mu[i], K=K, nu=g_nu[i])
 
         probs_i1.append(pp_joint_n2 / pp_joint_n1)
 
         x_2n = x2[:j, i:i + 1].T
         K = create_covariance_matrix(j, 1, g_cov[i], g_var[i])
-        pp_joint_n2 = multivariate_student.pdf(x_2n, phi=np.zeros_like(x_2n) + mu[i], K=K, nu=g_nu[i])
+        pp_joint_n2 = multivariate_student.pdf(x_2n, phi=np.zeros_like(x_2n) + g_mu[i], K=K, nu=g_nu[i])
 
         x_1n = x2[:j - 1, i:i + 1].T
         K = create_covariance_matrix(j - 1, 1, g_cov[i], g_var[i])
-        pp_joint_n1 = multivariate_student.pdf(x_1n, phi=np.zeros_like(x_1n) + mu[i], K=K, nu=g_nu[i])
+        pp_joint_n1 = multivariate_student.pdf(x_1n, phi=np.zeros_like(x_1n) + g_mu[i], K=K, nu=g_nu[i])
 
         probs_i2.append(pp_joint_n2 / pp_joint_n1)
 
@@ -189,9 +190,11 @@ print('\n ********* JOINT PROBABILITY CHECK GAUSS********')
 for j in range(2, seq_len + 1):
     probs_i1, probs_i2 = [], []
     for i in range(p):
-        pp = utils_stats.gaussian_predictive_theoretical_prob_slow(x1[:j - 1, i], x1[:j, i], mu[i], g_cov[i], g_var[i])
+        pp = utils_stats.gaussian_predictive_theoretical_prob_slow(x1[:j - 1, i], x1[:j, i], g_mu[i], g_cov[i],
+                                                                   g_var[i])
         probs_i1.append(pp)
-        pp2 = utils_stats.gaussian_predictive_theoretical_prob_slow(x2[:j - 1, i], x2[:j, i], mu[i], g_cov[i], g_var[i])
+        pp2 = utils_stats.gaussian_predictive_theoretical_prob_slow(x2[:j - 1, i], x2[:j, i], g_mu[i], g_cov[i],
+                                                                    g_var[i])
         probs_i2.append(pp2)
 
     print('step', j - 1)

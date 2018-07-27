@@ -119,3 +119,5 @@ with tf.Session() as sess:
     # print(len(bad_dims))
     # for i in bad_dims:
     #     print(i, corr[i], nu[i], var[i])
+
+    print(min(nu), max(nu))

@@ -98,17 +98,24 @@ class GaussianRecurrentLayer(object):
     def get_log_likelihood(self, observation, mask_dim=None, eps=1e-12):
         x = observation
         mu, var = self.current_distribution
-        var += eps
+        # var += eps
         log_pdf = -0.5 * tf.log(2. * np.pi * var) - tf.square(x - mu) / (2. * var)
         if mask_dim is not None:
             return tf.reduce_sum(log_pdf * mask_dim, 1)
         else:
             return tf.reduce_sum(log_pdf, 1)
 
+    def get_log_likelihood_per_dim(self, observation, mask_dim=None, eps=1e-12):
+        x = observation
+        mu, var = self.current_distribution
+        # var += eps
+        log_pdf = -0.5 * tf.log(2. * np.pi * var) - tf.square(x - mu) / (2. * var)
+        return log_pdf
+
     def get_log_likelihood_under_prior(self, observation, mask_dim=None, eps=1e-12):
         x = observation
         mu, var = self.prior
-        var += eps
+        # var += eps
         log_pdf = -0.5 * tf.log(2. * np.pi * var) - tf.square(x - mu) / (2. * var)
         if mask_dim is not None:
             return tf.reduce_sum(log_pdf * mask_dim, 1)
