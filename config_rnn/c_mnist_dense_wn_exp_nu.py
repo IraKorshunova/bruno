@@ -161,7 +161,3 @@ def build_nvp_dense_model():
 
 def loss(log_probs):
     return -tf.reduce_mean(log_probs)
-
-
-def eval_loss(log_probs):
-    return -tf.reduce_mean(log_probs, axis=0)

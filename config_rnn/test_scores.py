@@ -3,11 +3,9 @@ import importlib
 import json
 import os
 import time
-
 import matplotlib
 import numpy as np
 import tensorflow as tf
-
 import utils
 from config_rnn import defaults
 
@@ -48,7 +46,6 @@ all_params = tf.trainable_variables()
 x_in = tf.placeholder(tf.float32, shape=(config.seq_len,) + config.obs_shape)
 model_output = model(x_in)
 log_probs, latent_log_probs, latent_log_probs_prior = model_output[0], model_output[1], model_output[2]
-z_vec = model_output[3]
 
 saver = tf.train.Saver()
 
@@ -67,26 +64,25 @@ with tf.Session() as sess:
     probs_x = []
     for idx, x_batch in zip(batch_idxs, data_iter.generate_diagonal_roll(same_class=args.same_class, noise_rng=rng,
                                                                          same_image=args.same_image)):
-        lp_x, lp_z, lp_prior_z, z = sess.run([log_probs, latent_log_probs, latent_log_probs_prior, z_vec],
-                                             feed_dict={x_in: x_batch})
-        print(z_vec.shape)
+        lp_x, lp_z, lp_prior_z = sess.run([log_probs, latent_log_probs, latent_log_probs_prior],
+                                          feed_dict={x_in: x_batch})
         score = np.diag(lp_z - lp_prior_z)
         scores.append(score)
         prior_ll.append(lp_x[0, 0])
         probs_x.append(np.diag(lp_x))
 
-        target_path = save_dir
-        fig = plt.figure(figsize=(4, 3))
-        plt.grid(True, which="both", ls="-", linewidth='0.2')
-        plt.plot(range(len(probs_x[-1])), probs_x[-1], 'black', linewidth=1.)
-        plt.scatter(range(len(probs_x[-1])), probs_x[-1], s=1.5, c='black')
-        plt.xlabel('step')
-        plt.ylabel(r'nll ($\epsilon$=%s)' % args.eps_corr)
-        plt.savefig(
-            target_path + '/nll_plot_%s_eps%s_len%s_%s_class%s_img%s_%s.png' % (
-                idx, args.eps_corr, args.seq_len, args.set, args.same_class, args.same_image, args.n_batches),
-            bbox_inches='tight', dpi=600)
-        plt.close()
+        # target_path = save_dir
+        # fig = plt.figure(figsize=(4, 3))
+        # plt.grid(True, which="both", ls="-", linewidth='0.2')
+        # plt.plot(range(len(probs_x[-1])), probs_x[-1], 'black', linewidth=1.)
+        # plt.scatter(range(len(probs_x[-1])), probs_x[-1], s=1.5, c='black')
+        # plt.xlabel('step')
+        # plt.ylabel(r'nll ($\epsilon$=%s)' % args.eps_corr)
+        # plt.savefig(
+        #     target_path + '/nll_plot_%s_eps%s_len%s_%s_class%s_img%s_%s.png' % (
+        #         idx, args.eps_corr, args.seq_len, args.set, args.same_class, args.same_image, args.n_batches),
+        #     bbox_inches='tight', dpi=600)
+        # plt.close()
 
     scores = np.asarray(scores)
     print(scores.shape)

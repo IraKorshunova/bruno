@@ -20,7 +20,7 @@ a_cifar_wn_elu | 7359.661| 7789.363 (3.658 bpd) |  7803.375 |
 a_cifar_gp_wn_elu |7329.147| 7783.228| 7798.605 | 7329.147
 a_cifar_wn_elu_valid |7280.275 | 7773.172 | 7781.704 | 7274.878
 
-
+a_fashion_mnist | 1415.019 | 1648.727| 1660.015| 1416.341
 
 
 Model | Train NLL | Test NLL | Test NLL under prior | Train NLL under prior 

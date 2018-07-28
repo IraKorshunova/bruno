@@ -3,11 +3,9 @@ import importlib
 import json
 import os
 import time
-
 import matplotlib
 import numpy as np
 import tensorflow as tf
-
 import utils
 from config_rnn import defaults
 
@@ -212,14 +210,18 @@ with tf.Session() as sess:
     plt.close()
 
     diff_sum = []
-    for i in range(probs_per_dim_out.shape[-1]):
+    # for i in range(probs_per_dim_out.shape[-1]):
+    for i in [13]:
         # probs_out = np.diag(probs_per_dim_out[:, :, i])
         # probs_out_gauss = np.diag(probs_per_dim_out_gauss[:, :, i])
 
         probs_out = probs_per_dim_out[-1, :, i]
         probs_out_gauss = probs_per_dim_out_gauss[-1, :, i]
-        print(i, probs_out_gauss[-1] - probs_out[-1])
+        # print(i, probs_out_gauss[-1] - probs_out[-1])
+        for j in range(probs_out.shape[0]):
+            print(j, probs_out_gauss[j] - probs_out[j], z[-1, j, i])
         diff_sum.append(probs_out_gauss[-1] - probs_out[-1])
+        print(repr(z[-1, :, i]))
 
         # fig = plt.figure(figsize=(4, 3))
         plt.figure(1)

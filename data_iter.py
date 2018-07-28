@@ -1,5 +1,4 @@
 import numpy as np
-
 import utils
 
 
@@ -95,7 +94,7 @@ class OmniglotExchSeqDataIterator(object):
             x_batch += noise_rng.uniform(size=x_batch.shape)
             yield x_batch, y_batch
 
-    def generate_diagonal_roll(self, rng=None, same_class=True, noise_rng=None):
+    def generate_diagonal_roll(self, rng=None, same_class=True, same_image=False, noise_rng=None):
         rng = self.rng if rng is None else rng
         noise_rng = self.rng if noise_rng is None else noise_rng
         batch_size = self.seq_len
