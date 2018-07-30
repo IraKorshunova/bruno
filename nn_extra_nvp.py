@@ -9,7 +9,7 @@ def int_shape(x):
 
 def logit_forward_and_jacobian(x, sum_log_det_jacobians):
     alpha = 1e-5
-    y = x * (1 - alpha) + alpha * 0.5 # TODO
+    y = x * (1 - alpha) + alpha * 0.5
     jac = tf.reduce_sum(-tf.log(y) - tf.log(1 - y), [1, 2, 3])
     y = tf.log(y) - tf.log(1. - y)
     sum_log_det_jacobians += jac
@@ -32,18 +32,19 @@ class Layer():
 
 
 class CouplingLayerConv(Layer):
-    def __init__(self, mask_type, name='CouplingLayer', nonlinearity=tf.nn.relu, weight_norm=True):
+    def __init__(self, mask_type, name='CouplingLayer', nonlinearity=tf.nn.relu, weight_norm=True, num_filters=64):
         self.mask_type = mask_type
         self.name = name
         self.nonlinearity = nonlinearity
         self.weight_norm = weight_norm
+        self.num_filters = num_filters
 
     def function_s_t(self, x, mask, name='function_s_t'):
         if self.weight_norm:
             return self.function_s_t_wn(x, mask, name + '_wn')
         else:
             with tf.variable_scope(name):
-                num_filters = 64
+                num_filters = self.num_filters
                 xs = int_shape(x)
                 kernel_size = 3
                 n_input_channels = xs[3]
@@ -82,7 +83,7 @@ class CouplingLayerConv(Layer):
 
     def function_s_t_wn(self, x, mask, name):
         with tf.variable_scope(name):
-            num_filters = 64
+            num_filters = self.num_filters
             xs = int_shape(x)
             kernel_size = 3
             n_input_channels = xs[3]

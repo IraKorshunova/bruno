@@ -320,6 +320,7 @@ class BaseExchSeqDataIterator(object):
         print(set, 'N classes', self.n_classes)
         print(set, 'min, max', np.min(self.x), np.max(self.x))
         print(set, 'nsamples', self.nsamples)
+        print(set, 'digits', self.digits)
         print('--------------')
 
     def get_observation_size(self):
@@ -414,7 +415,7 @@ class BaseExchSeqDataIterator(object):
                 other_digits.remove(j)
                 j2 = rng.choice(other_digits)
                 idxs = self.y2idxs[j2]
-                sequence[0, 0] = np.zeros_like(self.x[rng.choice(idxs)])
+                sequence[0, 0] = self.x[rng.choice(idxs)]
 
             sequence += noise_rng.uniform(size=sequence.shape)
 

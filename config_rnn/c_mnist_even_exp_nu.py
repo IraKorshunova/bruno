@@ -1,7 +1,6 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.framework.python.ops import arg_scope
-
 import data_iter
 import nn_extra_nvp
 import nn_extra_student
@@ -11,6 +10,7 @@ batch_size = 32
 sample_batch_size = 1
 n_samples = 4
 rng = np.random.RandomState(42)
+rng_test = np.random.RandomState(317070)
 seq_len = defaults.seq_len
 eps_corr = defaults.eps_corr
 mask_dims = defaults.mask_dims
@@ -19,13 +19,17 @@ nonlinearity = tf.nn.elu
 weight_norm = True
 
 train_data_iter = data_iter.BaseExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size,
-                                                    set='train', rng=rng, dataset='fashion_mnist')
+                                                    set='train', rng=rng, digits=[0, 2, 4, 6, 8])
 test_data_iter = data_iter.BaseExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size, set='test',
-                                                   dataset='fashion_mnist')
+                                                   digits=[1, 3, 5, 7, 9], rng=rng_test)
 
 valid_data_iter = data_iter.BaseExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size,
-                                                    dataset='fashion_mnist', set='test', rng=rng)
+                                                    set='test', rng=rng, digits=[0, 2, 4, 6, 8])
 
+test_data_iter2 = data_iter.BaseTestBatchSeqDataIterator(seq_len=seq_len,
+                                                         set='test',
+                                                         rng=rng,
+                                                         digits=[1, 3, 5, 7, 9])
 
 obs_shape = train_data_iter.get_observation_size()  # (seq_len, 28,28,1)
 print('obs shape', obs_shape)
@@ -37,7 +41,7 @@ nu_init = 1000
 optimizer = 'rmsprop'
 learning_rate = 0.001
 lr_decay = 0.999995
-max_iter = 70000
+max_iter = 50000
 save_every = 1000
 
 validate_every = 1000
@@ -153,42 +157,47 @@ def build_model(x, init=False, sampling_mode=False):
 def build_nvp_model():
     global nvp_layers
     num_scales = 2
+    num_filters = 32
     for scale in range(num_scales - 1):
         nvp_layers.append(
             nn_extra_nvp.CouplingLayerConv('checkerboard0', name='Checkerboard%d_1' % scale,
-                                           nonlinearity=nonlinearity, weight_norm=weight_norm))
+                                           nonlinearity=nonlinearity, weight_norm=weight_norm,
+                                           num_filters=num_filters))
         nvp_layers.append(
             nn_extra_nvp.CouplingLayerConv('checkerboard1', name='Checkerboard%d_2' % scale,
-                                           nonlinearity=nonlinearity, weight_norm=weight_norm))
+                                           nonlinearity=nonlinearity, weight_norm=weight_norm,
+                                           num_filters=num_filters))
         nvp_layers.append(
             nn_extra_nvp.CouplingLayerConv('checkerboard0', name='Checkerboard%d_3' % scale,
-                                           nonlinearity=nonlinearity, weight_norm=weight_norm))
+                                           nonlinearity=nonlinearity, weight_norm=weight_norm,
+                                           num_filters=num_filters))
         nvp_layers.append(nn_extra_nvp.SqueezingLayer(name='Squeeze%d' % scale))
         nvp_layers.append(
             nn_extra_nvp.CouplingLayerConv('channel0', name='Channel%d_1' % scale, nonlinearity=nonlinearity,
-                                           weight_norm=weight_norm))
+                                           weight_norm=weight_norm,
+                                           num_filters=num_filters))
         nvp_layers.append(
             nn_extra_nvp.CouplingLayerConv('channel1', name='Channel%d_2' % scale, nonlinearity=nonlinearity,
-                                           weight_norm=weight_norm))
+                                           weight_norm=weight_norm, num_filters=num_filters))
         nvp_layers.append(
             nn_extra_nvp.CouplingLayerConv('channel0', name='Channel%d_3' % scale, nonlinearity=nonlinearity,
-                                           weight_norm=weight_norm))
+                                           weight_norm=weight_norm, num_filters=num_filters))
         nvp_layers.append(nn_extra_nvp.FactorOutLayer(scale, name='FactorOut%d' % scale))
 
     # final layer
     scale = num_scales - 1
     nvp_layers.append(
         nn_extra_nvp.CouplingLayerConv('checkerboard0', name='Checkerboard%d_1' % scale,
-                                       nonlinearity=nonlinearity, weight_norm=weight_norm))
+                                       nonlinearity=nonlinearity, weight_norm=weight_norm, num_filters=num_filters))
     nvp_layers.append(
         nn_extra_nvp.CouplingLayerConv('checkerboard1', name='Checkerboard%d_2' % scale,
-                                       nonlinearity=nonlinearity, weight_norm=weight_norm))
+                                       nonlinearity=nonlinearity, weight_norm=weight_norm, num_filters=num_filters))
     nvp_layers.append(
         nn_extra_nvp.CouplingLayerConv('checkerboard0', name='Checkerboard%d_3' % scale,
-                                       nonlinearity=nonlinearity, weight_norm=weight_norm))
+                                       nonlinearity=nonlinearity, weight_norm=weight_norm, num_filters=num_filters))
     nvp_layers.append(
         nn_extra_nvp.CouplingLayerConv('checkerboard1', name='Checkerboard%d_4' % scale,
-                                       nonlinearity=nonlinearity, weight_norm=weight_norm))
+                                       nonlinearity=nonlinearity, weight_norm=weight_norm, num_filters=num_filters))
     nvp_layers.append(nn_extra_nvp.FactorOutLayer(scale, name='FactorOut%d' % scale))
 
 
@@ -199,7 +208,7 @@ def build_nvp_dense_model():
         mask = 'even' if i % 2 == 0 else 'odd'
         name = '%s_%s' % (mask, i)
         nvp_dense_layers.append(
-            nn_extra_nvp.CouplingLayerDense(mask, name=name, nonlinearity=nonlinearity, n_units=512,
+            nn_extra_nvp.CouplingLayerDense(mask, name=name, nonlinearity=nonlinearity, n_units=256,
                                             weight_norm=weight_norm))
 
 
