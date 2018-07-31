@@ -147,7 +147,7 @@ def build_nvp_dense_model():
         mask = 'even' if i % 2 == 0 else 'odd'
         name = '%s_%s' % (mask, i)
         nvp_dense_layers.append(
-            nn_extra_nvp.CouplingLayerDense(mask, name=name, nonlinearity=nonlinearity, n_units=512,
+            nn_extra_nvp.CouplingLayerDense(mask, name=name, nonlinearity=nonlinearity, n_units=256,
                                             weight_norm=weight_norm))
 
 

@@ -1,5 +1,4 @@
 import collections
-
 import numpy as np
 import tensorflow as tf
 
@@ -20,7 +19,8 @@ class GaussianRecurrentLayer(object):
                  mu_init=0.,
                  var_init=1.,
                  corr_init=0.5,
-                 learn_mu=True):
+                 learn_mu=True,
+                 square_var=False):
         self.seed_rng = np.random.RandomState(42)
 
         self._shape = shape
@@ -43,7 +43,10 @@ class GaussianRecurrentLayer(object):
                 tf.float32,
                 tf.constant_initializer(inv_softplus(var_init))
             )
-            self.var = tf.nn.softplus(self.var_vbl)
+            if square_var:
+                self.var = tf.square(tf.nn.softplus(self.var_vbl))
+            else:
+                self.var = tf.nn.softplus(self.var_vbl)
 
             self.prior = Gaussian(
                 self.mu,

@@ -1,5 +1,4 @@
 import collections
-
 import numpy as np
 import tensorflow as tf
 
@@ -25,6 +24,7 @@ class StudentRecurrentLayer(object):
                  learn_mu=True,
                  min_nu=2.,
                  exp_nu=False,
+                 square_var=False,
                  tied_nu=False):
         self.seed_rng = np.random.RandomState(42)
 
@@ -45,7 +45,10 @@ class StudentRecurrentLayer(object):
             tf.float32,
             tf.constant_initializer(inv_softplus(var_init))
         )
-        self.var = tf.nn.softplus(self.var_vbl)
+        if square_var:
+            self.var = tf.square(tf.nn.softplus(self.var_vbl))
+        else:
+            self.var = tf.nn.softplus(self.var_vbl)
 
         if learn_nu:
             if tied_nu:

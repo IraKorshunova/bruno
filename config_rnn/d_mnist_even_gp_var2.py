@@ -40,7 +40,7 @@ corr_init = np.ones((ndim,), dtype='float32') * 0.1
 optimizer = 'rmsprop'
 learning_rate = 0.001
 lr_decay = 0.999995
-max_iter = 100000
+max_iter = 200000
 save_every = 1000
 
 validate_every = 1000
@@ -62,7 +62,7 @@ def build_model(x, init=False, sampling_mode=False):
 
         global student_layer
         if student_layer is None:
-            student_layer = nn_extra_gauss.GaussianRecurrentLayer(shape=(ndim,), corr_init=corr_init, learn_mu=False)
+            student_layer = nn_extra_gauss.GaussianRecurrentLayer(shape=(ndim,), corr_init=corr_init, learn_mu=False, square_var=True)
 
         x_shape = nn_extra_nvp.int_shape(x)
         x_bs = tf.reshape(x, (x_shape[0] * x_shape[1], x_shape[2], x_shape[3], x_shape[4]))
