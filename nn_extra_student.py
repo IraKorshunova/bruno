@@ -16,16 +16,13 @@ def inv_sigmoid(x):
 
 class StudentRecurrentLayer(object):
     def __init__(self, shape,
-                 nu_init=2.5,
+                 nu_init=1000,
                  mu_init=0.,
                  var_init=1.,
-                 corr_init=0.5,
+                 corr_init=0.1,
                  learn_nu=True,
-                 learn_mu=True,
-                 min_nu=2.,
-                 exp_nu=False,
-                 square_var=False,
-                 tied_nu=False):
+                 learn_mu=False,
+                 min_nu=2.):
         self.seed_rng = np.random.RandomState(42)
 
         self._shape = shape
@@ -43,40 +40,18 @@ class StudentRecurrentLayer(object):
             "prior_var",
             (1,) + shape,
             tf.float32,
-            tf.constant_initializer(inv_softplus(var_init))
+            tf.constant_initializer(inv_softplus(np.sqrt(var_init)))
         )
-        if square_var:
-            self.var = tf.square(tf.nn.softplus(self.var_vbl))
-        else:
-            self.var = tf.nn.softplus(self.var_vbl)
+        self.var = tf.square(tf.nn.softplus(self.var_vbl))
 
         if learn_nu:
-            if tied_nu:
-                assert len(shape) == 1
-                self.nu_vbl = tf.get_variable(
-                    "prior_nu",
-                    (1, 1),
-                    tf.float32,
-                    tf.constant_initializer(np.log(nu_init - min_nu))
-                )
-                self.nu = tf.tile(tf.exp(self.nu_vbl) + min_nu, (1,) + shape)
-            else:
-                if exp_nu:
-                    self.nu_vbl = tf.get_variable(
-                        "prior_nu",
-                        (1,) + shape,
-                        tf.float32,
-                        tf.constant_initializer(np.log(nu_init - min_nu))
-                    )
-                    self.nu = tf.exp(self.nu_vbl) + min_nu
-                else:
-                    self.nu_vbl = tf.get_variable(
-                        "prior_nu",
-                        (1,) + shape,
-                        tf.float32,
-                        tf.constant_initializer(inv_softplus(nu_init - min_nu))
-                    )
-                    self.nu = tf.nn.softplus(self.nu_vbl) + min_nu
+            self.nu_vbl = tf.get_variable(
+                "prior_nu",
+                (1,) + shape,
+                tf.float32,
+                tf.constant_initializer(np.log(nu_init - min_nu))
+            )
+            self.nu = tf.exp(self.nu_vbl) + min_nu
         else:
             self.nu = tf.ones((1,) + shape, name='prior_nu') * nu_init
 
@@ -150,10 +125,9 @@ class StudentRecurrentLayer(object):
     #     else:
     #         return tf.reduce_sum(log_pdf, 1)
 
-    def get_log_likelihood(self, observation, mask_dim=None, eps=1e-12):
+    def get_log_likelihood(self, observation, mask_dim=None):
         x = observation
         mu, var, nu = self.current_distribution
-        # var += eps
         ln_gamma_quotient = tf.lgamma((1. + nu) / 2.) - tf.lgamma(nu / 2.)
         ln_nom = (-(1. + nu) / 2.) * tf.log1p(tf.square(x - mu) / ((nu - 2.) * var))
         ln_denom = 0.5 * tf.log((nu - 2.) * np.pi * var)
@@ -163,20 +137,18 @@ class StudentRecurrentLayer(object):
         else:
             return tf.reduce_sum(log_pdf, 1)
 
-    def get_log_likelihood_per_dim(self, observation, mask_dim=None, eps=1e-12):
+    def get_log_likelihood_per_dim(self, observation, mask_dim=None):
         x = observation
         mu, var, nu = self.current_distribution
-        # var += eps
         ln_gamma_quotient = tf.lgamma((1. + nu) / 2.) - tf.lgamma(nu / 2.)
         ln_nom = (-(1. + nu) / 2.) * tf.log1p(tf.square(x - mu) / ((nu - 2.) * var))
         ln_denom = 0.5 * tf.log((nu - 2.) * np.pi * var)
         log_pdf = ln_gamma_quotient + ln_nom - ln_denom
         return log_pdf
 
-    def get_log_likelihood_under_prior(self, observation, mask_dim=None, eps=1e-12):
+    def get_log_likelihood_under_prior(self, observation, mask_dim=None):
         x = observation
         mu, var, nu = self.prior
-        # var += eps
         ln_gamma_quotient = tf.lgamma((1. + nu) / 2.) - tf.lgamma(nu / 2.)
         ln_nom = (-(1. + nu) / 2.) * tf.log1p((tf.square(x - mu) / ((nu - 2.) * var)))
         ln_denom = 0.5 * tf.log((nu - 2.) * np.pi * var)

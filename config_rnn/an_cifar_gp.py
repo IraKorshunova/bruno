@@ -1,7 +1,6 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.framework.python.ops import arg_scope
-
 import data_iter
 import nn_extra_gauss
 import nn_extra_nvp
@@ -11,6 +10,7 @@ batch_size = 16
 sample_batch_size = 1
 n_samples = 4
 rng = np.random.RandomState(42)
+test_rng = np.random.RandomState(317070)
 seq_len = defaults.seq_len
 eps_corr = defaults.eps_corr
 mask_dims = defaults.mask_dims
@@ -21,7 +21,7 @@ weight_norm = True
 train_data_iter = data_iter.BaseExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size,
                                                     dataset='cifar10', set='train', rng=rng)
 test_data_iter = data_iter.BaseExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size,
-                                                   dataset='cifar10', set='test', rng=rng)
+                                                   dataset='cifar10', set='test', rng=test_rng)
 obs_shape = train_data_iter.get_observation_size()  # (seq_len, 28,28,1)
 print('obs shape', obs_shape)
 

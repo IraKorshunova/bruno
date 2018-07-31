@@ -18,9 +18,8 @@ class GaussianRecurrentLayer(object):
     def __init__(self, shape,
                  mu_init=0.,
                  var_init=1.,
-                 corr_init=0.5,
-                 learn_mu=True,
-                 square_var=False):
+                 corr_init=0.1,
+                 learn_mu=False):
         self.seed_rng = np.random.RandomState(42)
 
         self._shape = shape
@@ -41,12 +40,9 @@ class GaussianRecurrentLayer(object):
                 "prior_var",
                 (1,) + shape,
                 tf.float32,
-                tf.constant_initializer(inv_softplus(var_init))
+                tf.constant_initializer(inv_softplus(np.sqrt(var_init)))
             )
-            if square_var:
-                self.var = tf.square(tf.nn.softplus(self.var_vbl))
-            else:
-                self.var = tf.nn.softplus(self.var_vbl)
+            self.var = tf.square(tf.nn.softplus(self.var_vbl))
 
             self.prior = Gaussian(
                 self.mu,
@@ -98,27 +94,24 @@ class GaussianRecurrentLayer(object):
         self.current_distribution = Gaussian(mu_out, var_out)
         self._state = State(i, x_sum_out)
 
-    def get_log_likelihood(self, observation, mask_dim=None, eps=1e-12):
+    def get_log_likelihood(self, observation, mask_dim=None):
         x = observation
         mu, var = self.current_distribution
-        # var += eps
         log_pdf = -0.5 * tf.log(2. * np.pi * var) - tf.square(x - mu) / (2. * var)
         if mask_dim is not None:
             return tf.reduce_sum(log_pdf * mask_dim, 1)
         else:
             return tf.reduce_sum(log_pdf, 1)
 
-    def get_log_likelihood_per_dim(self, observation, mask_dim=None, eps=1e-12):
+    def get_log_likelihood_per_dim(self, observation, mask_dim=None):
         x = observation
         mu, var = self.current_distribution
-        # var += eps
         log_pdf = -0.5 * tf.log(2. * np.pi * var) - tf.square(x - mu) / (2. * var)
         return log_pdf
 
-    def get_log_likelihood_under_prior(self, observation, mask_dim=None, eps=1e-12):
+    def get_log_likelihood_under_prior(self, observation, mask_dim=None):
         x = observation
         mu, var = self.prior
-        # var += eps
         log_pdf = -0.5 * tf.log(2. * np.pi * var) - tf.square(x - mu) / (2. * var)
         if mask_dim is not None:
             return tf.reduce_sum(log_pdf * mask_dim, 1)

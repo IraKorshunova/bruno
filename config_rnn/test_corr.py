@@ -3,11 +3,9 @@ import importlib
 import json
 import os
 import time
-
 import matplotlib
 import numpy as np
 import tensorflow as tf
-
 import utils
 
 matplotlib.use('Agg')
@@ -113,11 +111,3 @@ with tf.Session() as sess:
     plt.ylabel('var')
     plt.savefig(target_path + '/nu_var.png',
                 bbox_inches='tight', dpi=600)
-
-    # bad_dims = np.intersect1d(np.where(0.002 < corr)[0], np.where(0.003 > corr)[0])
-    # print(bad_dims)
-    # print(len(bad_dims))
-    # for i in bad_dims:
-    #     print(i, corr[i], nu[i], var[i])
-
-    print(min(nu), max(nu))

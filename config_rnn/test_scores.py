@@ -71,32 +71,8 @@ with tf.Session() as sess:
         prior_ll.append(lp_x[0, 0])
         probs_x.append(np.diag(lp_x))
 
-        # target_path = save_dir
-        # fig = plt.figure(figsize=(4, 3))
-        # plt.grid(True, which="both", ls="-", linewidth='0.2')
-        # plt.plot(range(len(probs_x[-1])), probs_x[-1], 'black', linewidth=1.)
-        # plt.scatter(range(len(probs_x[-1])), probs_x[-1], s=1.5, c='black')
-        # plt.xlabel('step')
-        # plt.ylabel(r'nll ($\epsilon$=%s)' % args.eps_corr)
-        # plt.savefig(
-        #     target_path + '/nll_plot_%s_eps%s_len%s_%s_class%s_img%s_%s.png' % (
-        #         idx, args.eps_corr, args.seq_len, args.set, args.same_class, args.same_image, args.n_batches),
-        #     bbox_inches='tight', dpi=600)
-        # plt.close()
-
     scores = np.asarray(scores)
-    print(scores.shape)
     scores_mean = np.mean(scores, axis=0)
-    print(scores_mean)
-    print('log likelihood under the prior:')
-    prior_ll_mean = np.mean(prior_ll)
-    print('LL:', prior_ll_mean)
-    print('bits per dim:', -1. * prior_ll_mean / config.ndim / np.log(2.))
-    print('log likelihood mean:')
-    ll_mean = np.mean(probs_x)
-    print('LL:', ll_mean)
-    print('bits per dim:', -1. * ll_mean / config.ndim / np.log(2.))
-
     target_path = save_dir
     fig = plt.figure(figsize=(4, 3))
     plt.grid(True, which="both", ls="-", linewidth='0.2')
@@ -105,24 +81,27 @@ with tf.Session() as sess:
     plt.xlabel('step')
     plt.ylabel(r'score ($\epsilon$=%s)' % args.eps_corr)
     plt.savefig(
-        target_path + '/scores_plot_eps%s_len%s_%s_class%s_img%s.png' % (
-            args.eps_corr, args.seq_len, args.set, args.same_class, args.same_image),
+        target_path + '/scores_plot_len%s_%s_class%s_img%s.png' % (
+        args.seq_len, args.set, args.same_class, args.same_image),
         bbox_inches='tight', dpi=600)
+
+    prior_ll_mean = np.mean(prior_ll)
+    print('avg LL under prior :', prior_ll_mean)
+    print('bits per dim:', -1. * prior_ll_mean / config.ndim / np.log(2.))
 
     probs_x = np.asarray(probs_x)
     print(probs_x.shape)
-    nll = -1. * np.mean(probs_x, axis=0)
-    print('NLL:', nll)
-    print('bits per dim:', nll / config.ndim / np.log(2.))
+    ll = np.mean(probs_x, axis=0)
+    print('avg LL:', ll)
+    print('bits per dim:', -1. * ll / config.ndim / np.log(2.))
 
-    target_path = save_dir
     fig = plt.figure(figsize=(4, 3))
     plt.grid(True, which="both", ls="-", linewidth='0.2')
-    plt.plot(range(len(nll)), nll, 'black', linewidth=1.)
-    plt.scatter(range(len(nll)), nll, s=1.5, c='black')
+    plt.plot(range(len(ll)), ll, 'black', linewidth=1.)
+    plt.scatter(range(len(ll)), ll, s=1.5, c='black')
     plt.xlabel('step')
     plt.ylabel(r'nll ($\epsilon$=%s)' % args.eps_corr)
     plt.savefig(
-        target_path + '/nll_plot_eps%s_len%s_%s_class%s_img%s_%s.png' % (
-            args.eps_corr, args.seq_len, args.set, args.same_class, args.same_image, args.n_batches),
+        target_path + '/ll_plot_len%s_%s_class%s_img%s_%s.png' % (
+        args.seq_len, args.set, args.same_class, args.same_image, args.n_batches),
         bbox_inches='tight', dpi=600)
