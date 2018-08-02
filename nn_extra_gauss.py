@@ -19,7 +19,8 @@ class GaussianRecurrentLayer(object):
                  mu_init=0.,
                  var_init=1.,
                  corr_init=0.1,
-                 learn_mu=False):
+                 learn_mu=False,
+                 var_square=False):
         self.seed_rng = np.random.RandomState(42)
 
         self._shape = shape
@@ -42,7 +43,10 @@ class GaussianRecurrentLayer(object):
                 tf.float32,
                 tf.constant_initializer(inv_softplus(np.sqrt(var_init)))
             )
-            self.var = tf.square(tf.nn.softplus(self.var_vbl))
+            if var_square:
+                self.var = tf.square(self.var_vbl) + 1e-7
+            else:
+                self.var = tf.square(tf.nn.softplus(self.var_vbl))
 
             self.prior = Gaussian(
                 self.mu,

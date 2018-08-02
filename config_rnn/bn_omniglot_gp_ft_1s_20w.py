@@ -8,7 +8,7 @@ import nn_extra_nvp
 import utils
 from config_rnn import defaults
 
-base_metadata_path = utils.find_model_metadata('metadata/', 'cn_omniglot_gp')
+base_metadata_path = utils.find_model_metadata('metadata/', 'bn_omniglot_gp')
 
 sample_batch_size = 1
 n_samples = 4
