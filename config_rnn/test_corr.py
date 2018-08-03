@@ -79,35 +79,39 @@ with tf.Session() as sess:
         if t < 0.1:
             print(t, n_remained[-1])
 
-    target_path = save_dir
-    fig = plt.figure(figsize=(4, 3))
-    plt.grid(True, which="both", ls="-", linewidth='0.2')
-    plt.plot(eps_range, n_remained, 'black', linewidth=1.)
-    plt.scatter(eps_range, n_remained, s=1.5, c='black')
-    plt.gca().set_xscale("log", nonposx='clip')
-    plt.gca().set_yscale("log", nonposy='clip')
-    plt.xlabel(r'$\epsilon$')
-    plt.ylabel('number of dimensions')
-    plt.savefig(target_path + '/eps_plot.png',
-                bbox_inches='tight', dpi=600)
+    # target_path = save_dir
+    # fig = plt.figure(figsize=(4, 3))
+    # plt.grid(True, which="both", ls="-", linewidth='0.2')
+    # plt.plot(eps_range, n_remained, 'black', linewidth=1.)
+    # plt.scatter(eps_range, n_remained, s=1.5, c='black')
+    # plt.gca().set_xscale("log", nonposx='clip')
+    # plt.gca().set_yscale("log", nonposy='clip')
+    # plt.xlabel(r'$\epsilon$')
+    # plt.ylabel('number of dimensions')
+    # plt.savefig(target_path + '/eps_plot.png',
+    #             bbox_inches='tight', dpi=600)
+    #
+    # plt.figure(figsize=(4, 3))
+    # plt.scatter(nu, corr, s=1.5, c='black')
+    # plt.xlabel('nu')
+    # plt.ylabel('corr')
+    # plt.savefig(target_path + '/nu_corr.png',
+    #             bbox_inches='tight', dpi=600)
+    #
+    # plt.figure(figsize=(4, 3))
+    # plt.scatter(var, corr, s=1.5, c='black')
+    # plt.xlabel('var')
+    # plt.ylabel('corr')
+    # plt.savefig(target_path + '/var_corr.png',
+    #             bbox_inches='tight', dpi=600)
+    #
+    # plt.figure(figsize=(4, 3))
+    # plt.scatter(nu, var, s=1.5, c='black')
+    # plt.xlabel('nu')
+    # plt.ylabel('var')
+    # plt.savefig(target_path + '/nu_var.png',
+    #             bbox_inches='tight', dpi=600)
 
-    plt.figure(figsize=(4, 3))
-    plt.scatter(nu, corr, s=1.5, c='black')
-    plt.xlabel('nu')
-    plt.ylabel('corr')
-    plt.savefig(target_path + '/nu_corr.png',
-                bbox_inches='tight', dpi=600)
 
-    plt.figure(figsize=(4, 3))
-    plt.scatter(var, corr, s=1.5, c='black')
-    plt.xlabel('var')
-    plt.ylabel('corr')
-    plt.savefig(target_path + '/var_corr.png',
-                bbox_inches='tight', dpi=600)
+    print('VAR', np.min(var), np.max(var))
 
-    plt.figure(figsize=(4, 3))
-    plt.scatter(nu, var, s=1.5, c='black')
-    plt.xlabel('nu')
-    plt.ylabel('var')
-    plt.savefig(target_path + '/nu_var.png',
-                bbox_inches='tight', dpi=600)

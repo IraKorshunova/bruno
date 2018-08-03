@@ -3,9 +3,11 @@ import importlib
 import json
 import os
 import time
+
 import matplotlib
 import numpy as np
 import tensorflow as tf
+
 import utils
 from config_rnn import defaults
 
@@ -79,10 +81,10 @@ with tf.Session() as sess:
     plt.plot(range(len(scores_mean)), scores_mean, 'black', linewidth=1.)
     plt.scatter(range(len(scores_mean)), scores_mean, s=1.5, c='black')
     plt.xlabel('step')
-    plt.ylabel(r'score ($\epsilon$=%s)' % args.eps_corr)
+    plt.ylabel('score')
     plt.savefig(
         target_path + '/scores_plot_len%s_%s_class%s_img%s.png' % (
-        args.seq_len, args.set, args.same_class, args.same_image),
+            args.seq_len, args.set, args.same_class, args.same_image),
         bbox_inches='tight', dpi=600)
 
     prior_ll_mean = np.mean(prior_ll)
@@ -100,8 +102,8 @@ with tf.Session() as sess:
     plt.plot(range(len(ll)), ll, 'black', linewidth=1.)
     plt.scatter(range(len(ll)), ll, s=1.5, c='black')
     plt.xlabel('step')
-    plt.ylabel(r'nll ($\epsilon$=%s)' % args.eps_corr)
+    plt.ylabel('LL')
     plt.savefig(
         target_path + '/ll_plot_len%s_%s_class%s_img%s_%s.png' % (
-        args.seq_len, args.set, args.same_class, args.same_image, args.n_batches),
+            args.seq_len, args.set, args.same_class, args.same_image, args.n_batches),
         bbox_inches='tight', dpi=600)

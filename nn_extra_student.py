@@ -1,4 +1,5 @@
 import collections
+
 import numpy as np
 import tensorflow as tf
 
@@ -23,8 +24,9 @@ class StudentRecurrentLayer(object):
                  learn_nu=True,
                  learn_mu=False,
                  min_nu=2.,
-                 var_square=False):
+                 var_param='softplus'):
         self.seed_rng = np.random.RandomState(42)
+        print(var_param)
 
         self._shape = shape
 
@@ -37,16 +39,33 @@ class StudentRecurrentLayer(object):
             )
         else:
             self.mu = tf.ones((1,) + shape, name='prior_mean') * mu_init
-        self.var_vbl = tf.get_variable(
-            "prior_var",
-            (1,) + shape,
-            tf.float32,
-            tf.constant_initializer(inv_softplus(np.sqrt(var_init)))
-        )
-        if var_square:
+
+        if var_param == 'softplus':
+            self.var_vbl = tf.get_variable(
+                "prior_var",
+                (1,) + shape,
+                tf.float32,
+                tf.constant_initializer(inv_softplus(var_init))
+            )
+            self.var = tf.nn.softplus(self.var_vbl)
+        elif var_param == 'softplus_sqr':
+            self.var_vbl = tf.get_variable(
+                "prior_var",
+                (1,) + shape,
+                tf.float32,
+                tf.constant_initializer(inv_softplus(np.sqrt(var_init)))
+            )
+            self.var = tf.square(tf.nn.softplus(self.var_vbl))
+        elif var_param == 'sqr':
+            self.var_vbl = tf.get_variable(
+                "prior_var",
+                (1,) + shape,
+                tf.float32,
+                tf.constant_initializer(np.sqrt(var_init))
+            )
             self.var = tf.square(self.var_vbl) + 1e-7
         else:
-            self.var = tf.square(tf.nn.softplus(self.var_vbl))
+            raise ValueError('wrong parameterization of variance')
 
         if learn_nu:
             self.nu_vbl = tf.get_variable(
@@ -118,16 +137,6 @@ class StudentRecurrentLayer(object):
 
         self.current_distribution = Student(mu_out, sigma_out, nu_out)
         self._state = State(i, beta_out, x_sum_out, k_out)
-
-    # def get_log_likelihood(self, observation, mask_dim=None, eps=1e-12):
-    #     x = observation
-    #     mu, var, nu = self.current_distribution
-    #     var += eps
-    #     log_pdf = -0.5 * tf.log(2. * np.pi * var) - tf.square(x - mu) / (2. * var)
-    #     if mask_dim is not None:
-    #         return tf.reduce_sum(log_pdf * mask_dim, 1)
-    #     else:
-    #         return tf.reduce_sum(log_pdf, 1)
 
     def get_log_likelihood(self, observation, mask_dim=None):
         x = observation

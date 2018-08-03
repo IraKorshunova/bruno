@@ -21,8 +21,19 @@ d_mnist_even_exp_nu | 916.381 | 909.871 | 909.250 | 914.604
 
 Model | Train NLL | Test NLL | Test NLL under prior | Train NLL under prior 
 ------------ | :-------------: | :-------------: | :-------------: | :-------------:      
-b_omniglot_gp_wn |450.701| 518.627| 526.617 | 460.579
+b_omniglot_gp_wn     |450.701  | 518.627 | 526.617 | 460.579
 b_omniglot_wn_exp_nu | 454.110 | 541.375 | 551.029 | 463.803
+
+
+restoring parameters from metadata/bn_omniglot_tp-2018_07_31/params.ckpt
+Sequence length: 20
+Test Loss 532.406
+Bits per dim 0.980
+Test loss under prior 541.793
+Train Loss 439.014
+Bits per dim 0.808
+Train loss under prior 449.153
+
 
 
 Model | Train NLL | Test NLL | Test NLL under prior | Train NLL under prior 
@@ -35,4 +46,43 @@ a_fashion_mnist_exp_nu | 1411.402 | 1679.955 | 1685.874 | 1413.315
 Model          | Test            | Test prior      | Train           | Train prior 
 -------------- | :-------------: | :-------------: | :-------------: | :-------------:
 bn_omniglot_gp |
-bn_omniglot_tp |
+bn_omniglot_tp|
+
+
+
+restoring parameters from metadata/en_nice_mnist_even_gp2-2018_08_03/params.ckpt
+Sequence length: 20
+Test Loss 982.953
+Bits per dim 1.809
+Test loss under prior 987.637
+Train Loss 916.754
+Bits per dim 1.687
+Train loss under prior 920.563
+
+restoring parameters from metadata/en_nice_mnist_even_gp-2018_08_03/params.ckpt
+Sequence length: 20
+Test Loss 983.236
+Bits per dim 1.809
+Test loss under prior 989.850
+Train Loss 916.023
+Bits per dim 1.686
+Train loss under prior 919.909
+
+
+restoring parameters from metadata/en_nice_mnist_even2-2018_08_03/params.ckpt
+Sequence length: 20
+Test Loss 914.678
+Bits per dim 1.683
+Test loss under prior 914.938
+Train Loss 916.900
+Bits per dim 1.687
+Train loss under prior 915.105
+
+restoring parameters from metadata/en_nice_mnist_even-2018_08_03/params.ckpt
+Sequence length: 20
+Test Loss 912.581
+Bits per dim 1.679
+Test loss under prior 913.962
+^[^[Train Loss 914.758
+Bits per dim 1.683
+Train loss under prior 913.115

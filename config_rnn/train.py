@@ -152,14 +152,15 @@ if args.resume:
 else:
     losses_eval_valid, losses_eval_train, losses_avg_train = [], [], []
 
+start_time = time.time()
 with tf.Session() as sess:
     if args.resume:
         ckpt_file = save_dir + 'params.ckpt'
         print('restoring parameters from', ckpt_file)
         saver.restore(sess, tf.train.latest_checkpoint(save_dir))
 
+    prev_time = time.time()
     for iteration, x_batch in zip(batch_idxs, train_data_iter.generate()):
-        prev_time = time.clock()
 
         if hasattr(config, 'learning_rate_schedule') and iteration in config.learning_rate_schedule:
             lr = np.float32(config.learning_rate_schedule[iteration])
@@ -188,14 +189,12 @@ with tf.Session() as sess:
             l, _ = sess.run([train_loss, train_step], feed_dict)
             train_iter_losses.append(l)
 
-            current_time = time.clock()
             if (iteration + 1) % print_every == 0:
                 avg_train_loss = np.mean(train_iter_losses)
                 losses_avg_train.append(avg_train_loss)
                 train_iter_losses = []
-                print('%d/%d train_loss=%6.8f bits/value=%.3f time/batch=%.2f' % (
-                    iteration + 1, config.max_iter, avg_train_loss, avg_train_loss / config.ndim / np.log(2.),
-                    current_time - prev_time))
+                print('%d/%d train_loss=%6.8f bits/value=%.3f' % (
+                    iteration + 1, config.max_iter, avg_train_loss, avg_train_loss / config.ndim / np.log(2.)))
                 corr = config.student_layer.corr.eval().flatten()
 
             if hasattr(config, 'validate_every') and (iteration + 1) % config.validate_every == 0:
@@ -223,6 +222,10 @@ with tf.Session() as sess:
                 print('train loss', avg_loss)
 
             if (iteration + 1) % config.save_every == 0:
+                current_time = time.time()
+                eta_time = (config.max_iter - iteration) / config.save_every * (current_time - prev_time)
+                prev_time = current_time
+                print('ETA: ', time.strftime("%H:%M:%S", time.gmtime(eta_time)))
                 print('Saving model (iteration %s):' % iteration, experiment_id)
                 print('current learning rate:', lr)
                 saver.save(sess, save_dir + '/params.ckpt')
@@ -241,8 +244,13 @@ with tf.Session() as sess:
                 print('0.3', np.sum(corr > 0.3))
                 print('0.5', np.sum(corr > 0.5))
                 print('0.7', np.sum(corr > 0.7))
-                print('min, max', np.min(corr), np.max(corr))
+                print('corr min-max:', np.min(corr), np.max(corr))
+                var = config.student_layer.var.eval().flatten()
+                print('var min-max:', np.min(var), np.max(var))
 
                 if hasattr(config.student_layer, 'nu'):
                     nu = config.student_layer.nu.eval().flatten()
-                    print('nu', np.median(nu), np.min(nu), np.max(nu))
+                    print('nu median-min-max:', np.median(nu), np.min(nu), np.max(nu))
+
+
+print('Total time: ', time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time)))
