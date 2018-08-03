@@ -34,6 +34,16 @@ Train Loss 439.014
 Bits per dim 0.808
 Train loss under prior 449.153
 
+restoring parameters from metadata/bn_omniglot_gp-2018_07_31/params.ckpt
+Sequence length: 20
+Test Loss 536.452
+Bits per dim 0.987
+Test loss under prior 542.575
+Train Loss 437.537
+Bits per dim 0.805
+Train loss under prior 445.650
+
+
 
 
 Model | Train NLL | Test NLL | Test NLL under prior | Train NLL under prior 
