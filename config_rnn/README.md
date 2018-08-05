@@ -25,16 +25,6 @@ b_omniglot_gp_wn     |450.701  | 518.627 | 526.617 | 460.579
 b_omniglot_wn_exp_nu | 454.110 | 541.375 | 551.029 | 463.803
 
 
-restoring parameters from metadata/bn_omniglot_tp-2018_07_31/params.ckpt
-Sequence length: 20
-Test Loss 532.406
-Bits per dim 0.980
-Test loss under prior 541.793
-Train Loss 439.014
-Bits per dim 0.808
-Train loss under prior 449.153
-
-
 
 Model | Train NLL | Test NLL | Test NLL under prior | Train NLL under prior 
 ------------ | :-------------: | :-------------: | :-------------: | :-------------:      
@@ -45,8 +35,11 @@ a_fashion_mnist_exp_nu | 1411.402 | 1679.955 | 1685.874 | 1413.315
 
 Model          | Test            | Test prior      | Train           | Train prior 
 -------------- | :-------------: | :-------------: | :-------------: | :-------------:
-bn_omniglot_gp |
-bn_omniglot_tp|
+bn_omniglot_gp  softplus_sqr | 536.452 | 542.575 | 437.537 | 445.650
+bn_omniglot_gp2 sqr          | 542.093 |  548.312 | 444.239 | 452.292
+bn_omniglot_tp softplus sqr  | 532.406 | 541.793 | 439.014 | 449.153
+bn_omniglot_tp2 sqr  | 530.726 |  540.828 | 441.630 | 451.857
+
 
 
 
