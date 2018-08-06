@@ -33,7 +33,7 @@ nu_init = 1000
 optimizer = 'rmsprop'
 learning_rate = 0.001
 lr_decay = 0.999995
-max_iter = 70000
+max_iter = 55000
 save_every = 1000
 
 scale_student_grad = 0.
