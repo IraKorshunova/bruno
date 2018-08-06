@@ -1,5 +1,4 @@
 import collections
-
 import numpy as np
 import tensorflow as tf
 
@@ -46,7 +45,7 @@ class GaussianRecurrentLayer(object):
                     tf.float32,
                     tf.constant_initializer(inv_softplus(var_init))
                 )
-                self.var = tf.nn.softplus(self.var_vbl)
+                self.var = tf.nn.softplus(self.var_vbl) + 1e-7
             elif var_param == 'softplus_sqr':
                 self.var_vbl = tf.get_variable(
                     "prior_var",
