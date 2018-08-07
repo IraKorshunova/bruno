@@ -1,4 +1,5 @@
 import collections
+
 import numpy as np
 import tensorflow as tf
 
@@ -45,7 +46,7 @@ class GaussianRecurrentLayer(object):
                     tf.float32,
                     tf.constant_initializer(inv_softplus(var_init))
                 )
-                self.var = tf.nn.softplus(self.var_vbl) + 1e-7
+                self.var = tf.nn.softplus(self.var_vbl)
             elif var_param == 'softplus_sqr':
                 self.var_vbl = tf.get_variable(
                     "prior_var",
@@ -101,14 +102,14 @@ class GaussianRecurrentLayer(object):
         self.current_distribution = self.prior
         self._state = State(0., 0.)
 
-    def update_distribution(self, observation, eps=1e-12):
+    def update_distribution(self, observation):
         mu, sigma = self.current_distribution
         i, x_sum = self._state
         x = observation
         x_zm = x - self.mu
         x_sum_out = x_sum + x_zm
         i += 1
-        dd = self.cov / (self.var + self.cov * (i - 1.) + eps)
+        dd = self.cov / (self.var + self.cov * (i - 1.))
         mu_out = (1. - dd) * mu + observation * dd
         var_out = (1. - dd) * sigma + (self.var - self.cov) * dd
 
@@ -123,12 +124,6 @@ class GaussianRecurrentLayer(object):
             return tf.reduce_sum(log_pdf * mask_dim, 1)
         else:
             return tf.reduce_sum(log_pdf, 1)
-
-    def get_log_likelihood_per_dim(self, observation, mask_dim=None):
-        x = observation
-        mu, var = self.current_distribution
-        log_pdf = -0.5 * tf.log(2. * np.pi * var) - tf.square(x - mu) / (2. * var)
-        return log_pdf
 
     def get_log_likelihood_under_prior(self, observation, mask_dim=None):
         x = observation

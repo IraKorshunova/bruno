@@ -1,4 +1,5 @@
 import numpy as np
+
 import utils
 
 
@@ -108,7 +109,10 @@ class OmniglotExchSeqDataIterator(object):
 
             sequence = np.zeros((1,) + self.get_observation_size(), dtype='float32')
             for k in range(self.seq_len):
-                sequence[0, k] = self.x[idxs[k]]
+                if same_image:
+                    sequence[0, k] = self.x[idxs[0]]
+                else:
+                    sequence[0, k] = self.x[idxs[k]]
 
             if not same_class:
                 other_digits = list(self.classes)
