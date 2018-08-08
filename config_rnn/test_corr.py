@@ -3,13 +3,14 @@ import importlib
 import json
 import os
 import time
+
 import matplotlib
 import numpy as np
 import tensorflow as tf
+
 import utils
 
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
@@ -56,13 +57,9 @@ with tf.Session() as sess:
     print('corr\n', corr)
 
     print('******* corr - nu ********')
-    for c, n, v in zip(corr[np.where(corr > 0.05)[0]], nu[np.where(corr > 0.05)[0]], var[np.where(corr > 0.05)[0]]):
-        print(c, n, v)
-    print('--------------------------')
-
-    print('******* corr - nu ********')
-    for c, n, v in zip(corr[np.where(nu < 10)[0]], nu[np.where(nu < 10)[0]], var[np.where(nu < 10)[0]]):
-        print(c, n, v)
+    idxs = np.where(corr > 0.05)[0]
+    for i, c, n, v in zip(idxs, corr[idxs], nu[idxs], var[idxs]):
+        print(i, c, n, v)
     print('--------------------------')
 
     n_remained = []
@@ -112,6 +109,4 @@ with tf.Session() as sess:
     # plt.savefig(target_path + '/nu_var.png',
     #             bbox_inches='tight', dpi=600)
 
-
     print('VAR', np.min(var), np.max(var))
-

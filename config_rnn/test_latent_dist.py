@@ -28,6 +28,8 @@ gp_model = True if 'gp' in args.config_name else False
 # -----------------------------------------------------------------------------
 
 def student_pdf_1d(X, mu, var, nu):
+    if nu > 50:
+        return gauss_pdf_1d(X, mu, var)
     num = math.gamma((1. + nu) / 2.) * pow(
         1. + (1. / (nu - 2)) * (1. / var * (X - mu) ** 2), -(1. + nu) / 2.)
     denom = math.gamma(nu / 2.) * pow((nu - 2) * math.pi * var, 0.5)

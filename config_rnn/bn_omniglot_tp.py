@@ -154,7 +154,7 @@ def build_model(x, init=False, sampling_mode=False):
         latent_log_probs = tf.stack(latent_log_probs, axis=1)
         latent_log_probs_prior = tf.stack(latent_log_probs_prior, axis=1)
 
-        return log_probs, latent_log_probs, latent_log_probs_prior
+        return log_probs, latent_log_probs, latent_log_probs_prior, z_vec
 
 
 def build_nvp_model():

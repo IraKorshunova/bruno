@@ -34,18 +34,22 @@ a_fashion_mnist_exp_nu | 1411.402 | 1679.955 | 1685.874 | 1413.315
 
 Model          | Test            | Test prior      | Train           | Train prior 
 -------------- | :-------------: | :-------------: | :-------------: | :-------------:
-bn_omniglot_gp  softplus_sqr | 536.452 | 542.575 | 437.537 | 445.650
+bn_omniglot_gp3 softplus     | 534.376 | 543.175 | 439.676 | 450.237
 bn_omniglot_gp2 sqr          | 542.093 |  548.312 | 444.239 | 452.292
-bn_omniglot_gp3 softplus     |
-bn_omniglot_tp softplus sqr  | 532.406 | 541.793 | 439.014 | 449.153
+bn_omniglot_gp  softplus_sqr | 536.452 | 542.575 | 437.537 | 445.650
 bn_omniglot_tp2 sqr          | 530.726 |  540.828 | 441.630 | 451.857
+bn_omniglot_tp softplus sqr  | 532.406 | 541.793 | 439.014  | 449.153
+
+
 
 
 Model          | Test            | Test prior      | Train           | Train prior 
 -------------- | :-------------: | :-------------: | :-------------: | :-------------:
+an_cifar_tp3 softplus    | 7789.359 | 7811.993  | 7314.296 | 7312.620
 an_cifar_tp2 sqr         | 7812.924 |  7834.504 | 7342.390 | 7341.136
 an_cifar_tp softplus_sqr | 7778.768 |  7800.585 | 7303.793 | 7302.401
-an_cifar_tp3 softplus    |
+
+
 
 
 Model          | Test            | Test prior      | Train           | Train prior 
