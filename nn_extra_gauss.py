@@ -19,52 +19,22 @@ class GaussianRecurrentLayer(object):
     def __init__(self, shape,
                  mu_init=0.,
                  var_init=1.,
-                 corr_init=0.1,
-                 learn_mu=False,
-                 var_param='softplus'):
+                 corr_init=0.1):
+
         self.seed_rng = np.random.RandomState(42)
-        print(var_param)
 
         self._shape = shape
 
         with tf.variable_scope("gaussian"):
+            self.mu = tf.ones((1,) + shape, name='prior_mean') * mu_init
 
-            if learn_mu:
-                self.mu = tf.get_variable(
-                    "prior_mean",
-                    (1,) + shape,
-                    tf.float32,
-                    tf.constant_initializer(mu_init)
-                )
-            else:
-                self.mu = tf.ones((1,) + shape, name='prior_mean') * mu_init
-
-            if var_param == 'softplus':
-                self.var_vbl = tf.get_variable(
-                    "prior_var",
-                    (1,) + shape,
-                    tf.float32,
-                    tf.constant_initializer(inv_softplus(var_init))
-                )
-                self.var = tf.nn.softplus(self.var_vbl)
-            elif var_param == 'softplus_sqr':
-                self.var_vbl = tf.get_variable(
-                    "prior_var",
-                    (1,) + shape,
-                    tf.float32,
-                    tf.constant_initializer(inv_softplus(np.sqrt(var_init)))
-                )
-                self.var = tf.square(tf.nn.softplus(self.var_vbl))
-            elif var_param == 'sqr':
-                self.var_vbl = tf.get_variable(
-                    "prior_var",
-                    (1,) + shape,
-                    tf.float32,
-                    tf.constant_initializer(np.sqrt(var_init))
-                )
-                self.var = tf.square(self.var_vbl) + 1e-7
-            else:
-                raise ValueError('wrong parameterization of variance')
+            self.var_vbl = tf.get_variable(
+                "prior_var",
+                (1,) + shape,
+                tf.float32,
+                tf.constant_initializer(inv_softplus(np.sqrt(var_init)))
+            )
+            self.var = tf.square(tf.nn.softplus(self.var_vbl))
 
             self.prior = Gaussian(
                 self.mu,

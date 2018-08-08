@@ -14,7 +14,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 
-my_dpi = 96
+my_dpi = 1000
 
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()

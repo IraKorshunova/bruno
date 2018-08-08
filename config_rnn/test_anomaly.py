@@ -2,9 +2,11 @@ import argparse
 import importlib
 import json
 import os
+
 import matplotlib
 import numpy as np
 import tensorflow as tf
+
 import utils
 from config_rnn import defaults
 

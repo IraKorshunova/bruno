@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.framework.python.ops import arg_scope
+
 import data_iter
 import nn_extra_gauss
 import nn_extra_nvp
@@ -18,36 +19,37 @@ mask_dims = defaults.mask_dims
 nonlinearity = tf.nn.elu
 weight_norm = True
 
-train_data_iter = data_iter.OmniglotExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size,
-                                                        set='train', rng=rng, augment=True)
-test_data_iter = data_iter.OmniglotExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size, set='test',
-                                                       augment=False, rng=rng_test)
+train_data_iter = data_iter.BaseExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size,
+                                                    set='train', rng=rng, digits=[0, 2, 4, 6, 8])
+test_data_iter = data_iter.BaseExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size, set='test',
+                                                   digits=[1, 3, 5, 7, 9], rng=rng_test)
 
-test_data_iter2 = data_iter.OmniglotTestBatchSeqDataIterator(seq_len=seq_len,
-                                                             batch_size=batch_size,
-                                                             set='test',
-                                                             rng=rng_test,
-                                                             augment=True)
+valid_data_iter = data_iter.BaseExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size,
+                                                    set='test', rng=rng_test, digits=[0, 2, 4, 6, 8])
+
+test_data_iter2 = data_iter.BaseTestBatchSeqDataIterator(seq_len=seq_len,
+                                                         set='test',
+                                                         rng=rng_test,
+                                                         digits=[1, 3, 5, 7, 9])
 
 obs_shape = train_data_iter.get_observation_size()  # (seq_len, 28,28,1)
 print('obs shape', obs_shape)
 
 ndim = np.prod(obs_shape[1:])
 corr_init = np.ones((ndim,), dtype='float32') * 0.1
+nu_init = 1000
 
 optimizer = 'rmsprop'
 learning_rate = 0.001
-scale_student_grad = 0.
-max_iter = 200000
+lr_decay = 0.999995
+max_iter = 50000
 save_every = 1000
+
+validate_every = 1000
+n_valid_batches = 20
+
+scale_student_grad = 0.
 student_grad_schedule = {0: 0., 100: 0.1}
-learning_rate_schedule = {}
-prev_lr = learning_rate
-for i in range(max_iter):
-    learning_rate_schedule[i] = prev_lr * 0.999995
-    prev_lr = learning_rate_schedule[i]
-for i in range(100, max_iter):
-    learning_rate_schedule[i] *= 1.5
 
 nvp_layers = []
 nvp_dense_layers = []
@@ -66,8 +68,7 @@ def build_model(x, init=False, sampling_mode=False):
 
         global student_layer
         if student_layer is None:
-            student_layer = nn_extra_gauss.GaussianRecurrentLayer(shape=(ndim,), corr_init=corr_init, learn_mu=False,
-                                                                  var_param='softplus')
+            student_layer = nn_extra_gauss.GaussianRecurrentLayer(shape=(ndim,), corr_init=corr_init)
 
         x_shape = nn_extra_nvp.int_shape(x)
         x_bs = tf.reshape(x, (x_shape[0] * x_shape[1], x_shape[2], x_shape[3], x_shape[4]))
@@ -150,48 +151,53 @@ def build_model(x, init=False, sampling_mode=False):
         latent_log_probs = tf.stack(latent_log_probs, axis=1)
         latent_log_probs_prior = tf.stack(latent_log_probs_prior, axis=1)
 
-        return log_probs, latent_log_probs, latent_log_probs_prior
+        return log_probs, latent_log_probs, latent_log_probs_prior, z_vec
 
 
 def build_nvp_model():
     global nvp_layers
     num_scales = 2
+    num_filters = 32
     for scale in range(num_scales - 1):
         nvp_layers.append(
             nn_extra_nvp.CouplingLayerConv('checkerboard0', name='Checkerboard%d_1' % scale,
-                                           nonlinearity=nonlinearity, weight_norm=weight_norm))
+                                           nonlinearity=nonlinearity, weight_norm=weight_norm,
+                                           num_filters=num_filters))
         nvp_layers.append(
             nn_extra_nvp.CouplingLayerConv('checkerboard1', name='Checkerboard%d_2' % scale,
-                                           nonlinearity=nonlinearity, weight_norm=weight_norm))
+                                           nonlinearity=nonlinearity, weight_norm=weight_norm,
+                                           num_filters=num_filters))
         nvp_layers.append(
             nn_extra_nvp.CouplingLayerConv('checkerboard0', name='Checkerboard%d_3' % scale,
-                                           nonlinearity=nonlinearity, weight_norm=weight_norm))
+                                           nonlinearity=nonlinearity, weight_norm=weight_norm,
+                                           num_filters=num_filters))
         nvp_layers.append(nn_extra_nvp.SqueezingLayer(name='Squeeze%d' % scale))
         nvp_layers.append(
             nn_extra_nvp.CouplingLayerConv('channel0', name='Channel%d_1' % scale, nonlinearity=nonlinearity,
-                                           weight_norm=weight_norm))
+                                           weight_norm=weight_norm,
+                                           num_filters=num_filters))
         nvp_layers.append(
             nn_extra_nvp.CouplingLayerConv('channel1', name='Channel%d_2' % scale, nonlinearity=nonlinearity,
-                                           weight_norm=weight_norm))
+                                           weight_norm=weight_norm, num_filters=num_filters))
         nvp_layers.append(
             nn_extra_nvp.CouplingLayerConv('channel0', name='Channel%d_3' % scale, nonlinearity=nonlinearity,
-                                           weight_norm=weight_norm))
+                                           weight_norm=weight_norm, num_filters=num_filters))
         nvp_layers.append(nn_extra_nvp.FactorOutLayer(scale, name='FactorOut%d' % scale))
 
     # final layer
     scale = num_scales - 1
     nvp_layers.append(
         nn_extra_nvp.CouplingLayerConv('checkerboard0', name='Checkerboard%d_1' % scale,
-                                       nonlinearity=nonlinearity, weight_norm=weight_norm))
+                                       nonlinearity=nonlinearity, weight_norm=weight_norm, num_filters=num_filters))
     nvp_layers.append(
         nn_extra_nvp.CouplingLayerConv('checkerboard1', name='Checkerboard%d_2' % scale,
-                                       nonlinearity=nonlinearity, weight_norm=weight_norm))
+                                       nonlinearity=nonlinearity, weight_norm=weight_norm, num_filters=num_filters))
     nvp_layers.append(
         nn_extra_nvp.CouplingLayerConv('checkerboard0', name='Checkerboard%d_3' % scale,
-                                       nonlinearity=nonlinearity, weight_norm=weight_norm))
+                                       nonlinearity=nonlinearity, weight_norm=weight_norm, num_filters=num_filters))
     nvp_layers.append(
         nn_extra_nvp.CouplingLayerConv('checkerboard1', name='Checkerboard%d_4' % scale,
-                                       nonlinearity=nonlinearity, weight_norm=weight_norm))
+                                       nonlinearity=nonlinearity, weight_norm=weight_norm, num_filters=num_filters))
     nvp_layers.append(nn_extra_nvp.FactorOutLayer(scale, name='FactorOut%d' % scale))
 
 
@@ -202,7 +208,7 @@ def build_nvp_dense_model():
         mask = 'even' if i % 2 == 0 else 'odd'
         name = '%s_%s' % (mask, i)
         nvp_dense_layers.append(
-            nn_extra_nvp.CouplingLayerDense(mask, name=name, nonlinearity=nonlinearity, n_units=512,
+            nn_extra_nvp.CouplingLayerDense(mask, name=name, nonlinearity=nonlinearity, n_units=256,
                                             weight_norm=weight_norm))
 
 

@@ -252,5 +252,4 @@ with tf.Session() as sess:
                     nu = config.student_layer.nu.eval().flatten()
                     print('nu median-min-max:', np.median(nu), np.min(nu), np.max(nu))
 
-
 print('Total time: ', time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time)))
