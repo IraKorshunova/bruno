@@ -57,3 +57,37 @@ cn_fashion_tp_sp | 1672.030 | 1684.074 | 1421.806 | 1423.788
 cn_fashion_tp_sqr | 1659.947 |  1670.360 | 1426.245 |  1427.708
 cn_fashion_tp_sqr_sp | 1647.122 | 1656.965 | 1422.699 | 1424.085
 
+
+
+
+Model          | Test            | Test prior      | Train           | Train prior 
+-------------- | :-------------: | :-------------: | :-------------: | :-------------:
+cn2_fashion_tp | 1661.209(3.057) | 1671.190        | 1417.329(2.608) | 1418.707
+cn2_fashion_gp | 1635.426(3.009) | 1642.390        | 1436.831(2.644) | 1439.928
+
+
+
+Model          | Test            | Test prior      | Train           | Train prior 
+-------------- | :-------------: | :-------------: | :-------------: | :-------------:
+bn2_omniglot_tp | 537.097 (0.988) | 546.987 | 438.032 (0.806) | 447.527
+bn2_omniglot_gp | 537.043 (0.988) | 544.449 | 434.759 (0.800) | 443.724
+
+
+
+restoring parameters from metadata/dn2_mnist_even_tp-2018_08_15/params.ckpt
+Sequence length: 20
+Test Loss 567.653
+Bits per dim 1.045
+Test loss under prior 570.687
+Train Loss 621.790
+Bits per dim 1.144
+Train loss under prior 626.456
+
+restoring parameters from metadata/dn2_mnist_even_gp-2018_08_15/params.ckpt
+Sequence length: 20
+Test Loss 567.321
+Bits per dim 1.044
+Test loss under prior 569.963
+Train Loss 627.947
+Bits per dim 1.156
+Train loss under prior 632.165

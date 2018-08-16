@@ -20,13 +20,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--config_name', type=str, required=True, help='Configuration name')
 parser.add_argument('-g', '--nr_gpu', type=int, default=1, help='How many GPUs to distribute the training across?')
 parser.add_argument('-r', '--resume', type=int, default=0, help='Resume training from a checkpoint?')
+parser.add_argument('-s', '--tf_seed', type=int, default=0, help='Tf rng seed')
 args = parser.parse_args()
 print('input args:\n', json.dumps(vars(args), indent=4, separators=(',', ':')))
 assert args.nr_gpu == len(''.join(filter(str.isdigit, os.environ["CUDA_VISIBLE_DEVICES"])))
 # -----------------------------------------------------------------------------
 np.random.seed(seed=42)
 tf.reset_default_graph()
-tf.set_random_seed(0)
+tf.set_random_seed(args.tf_seed)
 
 # config
 configs_dir = __file__.split('/')[-2]

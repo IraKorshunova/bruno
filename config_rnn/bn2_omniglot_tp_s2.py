@@ -3,14 +3,14 @@ import tensorflow as tf
 from tensorflow.contrib.framework.python.ops import arg_scope
 
 import data_iter
-import nn_extra_gauss
 import nn_extra_nvp
+import nn_extra_student
 from config_rnn import defaults
 
 batch_size = 32
 sample_batch_size = 1
 n_samples = 4
-rng = np.random.RandomState(42)
+rng = np.random.RandomState(24)
 rng_test = np.random.RandomState(317070)
 seq_len = defaults.seq_len
 eps_corr = defaults.eps_corr
@@ -19,25 +19,39 @@ mask_dims = defaults.mask_dims
 nonlinearity = tf.nn.elu
 weight_norm = True
 
-train_data_iter = data_iter.BaseExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size,
-                                                    set='train', rng=rng, dataset='fashion_mnist')
-test_data_iter = data_iter.BaseExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size, set='test',
-                                                   dataset='fashion_mnist', rng=rng_test)
+train_data_iter = data_iter.OmniglotExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size,
+                                                        set='train', rng=rng, augment=True)
+test_data_iter = data_iter.OmniglotExchSeqDataIterator(seq_len=seq_len, batch_size=batch_size, set='test',
+                                                       augment=False, rng=rng_test)
+
+test_data_iter2 = data_iter.OmniglotTestBatchSeqDataIterator(seq_len=seq_len,
+                                                             batch_size=batch_size,
+                                                             set='test',
+                                                             rng=rng_test,
+                                                             augment=True)
 
 obs_shape = train_data_iter.get_observation_size()  # (seq_len, 28,28,1)
 print('obs shape', obs_shape)
 
 ndim = np.prod(obs_shape[1:])
 corr_init = np.ones((ndim,), dtype='float32') * 0.1
+nu_init = 1000
 
 optimizer = 'rmsprop'
 learning_rate = 0.001
 lr_decay = 0.999995
-max_iter = 60000
-save_every = 1000
 
 scale_student_grad = 0.
+max_iter = 200000
+save_every = 1000
 student_grad_schedule = {0: 0., 100: 0.1}
+learning_rate_schedule = {}
+prev_lr = learning_rate
+for i in range(max_iter):
+    learning_rate_schedule[i] = prev_lr * 0.999995
+    prev_lr = learning_rate_schedule[i]
+for i in range(100, max_iter):
+    learning_rate_schedule[i] *= 1.5
 
 nvp_layers = []
 nvp_dense_layers = []
@@ -56,7 +70,7 @@ def build_model(x, init=False, sampling_mode=False):
 
         global student_layer
         if student_layer is None:
-            student_layer = nn_extra_gauss.GaussianRecurrentLayer(shape=(ndim,), corr_init=corr_init)
+            student_layer = nn_extra_student.StudentRecurrentLayer(shape=(ndim,), corr_init=corr_init, nu_init=nu_init)
 
         x_shape = nn_extra_nvp.int_shape(x)
         x_bs = tf.reshape(x, (x_shape[0] * x_shape[1], x_shape[2], x_shape[3], x_shape[4]))
