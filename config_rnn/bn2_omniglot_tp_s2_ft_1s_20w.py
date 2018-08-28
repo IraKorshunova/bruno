@@ -8,7 +8,7 @@ import nn_extra_student
 import utils
 from config_rnn import defaults
 
-base_metadata_path = utils.find_model_metadata('metadata/', 'bn2_omniglot_tp')
+base_metadata_path = utils.find_model_metadata('metadata/', 'bn2_omniglot_tp_s2')
 
 sample_batch_size = 1
 n_samples = 4

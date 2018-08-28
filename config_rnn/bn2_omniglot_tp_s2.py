@@ -1,3 +1,5 @@
+# --tf_seed 317070
+
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.framework.python.ops import arg_scope
