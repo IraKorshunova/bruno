@@ -114,7 +114,7 @@ def build_model(x, init=False, sampling_mode=False):
                     latent_log_probs.append(latent_log_prob)
 
                     log_prob = latent_log_prob + log_det_jac[:, i]
-                    log_probs.append(log_prob)
+                    log_probs.append(log_prob)      
 
                     latent_log_prob_prior = student_layer.get_log_likelihood_under_prior(z_vec[:, i, :],
                                                                                          mask_dim=mask_dim)
