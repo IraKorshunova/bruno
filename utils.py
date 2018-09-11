@@ -208,7 +208,7 @@ def process_omniglot_vinyals_split():
                     x_test.append(img)
 
     valid_classes = np.asarray(valid_classes)
-    np.save('data/omniglot_valid_classes', valid_classes)
+    np.save(c, valid_classes)
 
     x_train = np.asarray(x_train)
     y_train = np.asarray(y_train)

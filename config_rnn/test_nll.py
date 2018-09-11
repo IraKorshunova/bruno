@@ -62,7 +62,10 @@ with tf.Session() as sess:
     bits_per_dim = avg_loss / np.log(2.) / config.ndim
     print('Test Loss %.3f' % avg_loss)
     print('Bits per dim %.3f' % bits_per_dim)
-    print('Test loss under prior %.3f' % -np.mean(probs_prior))
+    avg_loss_prior = -np.mean(probs_prior)
+    bits_per_dim_prior = avg_loss_prior / np.log(2.) / config.ndim
+    print('Test loss under prior %.3f' % avg_loss_prior)
+    test_losses = (avg_loss, bits_per_dim, avg_loss_prior, bits_per_dim_prior)
 
     # train
     data_iter = config.train_data_iter
@@ -78,4 +81,9 @@ with tf.Session() as sess:
     bits_per_dim = avg_loss / np.log(2.) / config.ndim
     print('Train Loss %.3f' % avg_loss)
     print('Bits per dim %.3f' % bits_per_dim)
-    print('Train loss under prior %.3f' % -np.mean(probs_prior))
+    avg_loss_prior = -np.mean(probs_prior)
+    bits_per_dim_prior = avg_loss_prior / np.log(2.) / config.ndim
+    print('Train loss under prior %.3f' % avg_loss_prior)
+    train_losses = (avg_loss, bits_per_dim, avg_loss_prior, bits_per_dim_prior)
+
+    print('%.3f(%.3f) | %.3f(%.3f) | %.3f(%.3f) | %.3f(%.3f)' % (test_losses + train_losses))
