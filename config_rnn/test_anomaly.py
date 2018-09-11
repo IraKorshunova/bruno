@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 
 
-def plot_anomaly(config_name, n_sequences):
+def plot_anomaly(config_name, n_sequences, n_ignore=8):
     configs_dir = __file__.split('/')[-2]
     config = importlib.import_module('%s.%s' % (configs_dir, config_name))
 
@@ -58,12 +58,13 @@ def plot_anomaly(config_name, n_sequences):
                 scores.append(lp[i] - lpp[i])
             print('-------------')
 
-            quartile_1, quartile_3 = np.percentile(scores, [25, 75])
+            quartile_1, quartile_3 = np.percentile(scores[n_ignore:], [25, 75])
             iqr = quartile_3 - quartile_1
             lower_bound = quartile_1 - (iqr * 1.5)
             anomaly_idxs = np.where(np.asarray(scores) < lower_bound)[0]
             # don't count the first image as an outlier
-            anomaly_idxs = np.delete(anomaly_idxs, np.argwhere(anomaly_idxs == 0))
+            for i in range(n_ignore):
+                anomaly_idxs = np.delete(anomaly_idxs, np.argwhere(anomaly_idxs == i))
             print(anomaly_idxs)
 
             x_batch = np.squeeze(x_batch)

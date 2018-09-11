@@ -1,18 +1,17 @@
 # BRUNO: A Deep Recurrent Model for Exchangeable Data
 
-This is an official implementation for reproducing the results of   
-[BRUNO: A Deep Recurrent Model for Exchangeable Data](https://arxiv.org/abs/1802.07535)
+This is an official implementation for reproducing the results of [BRUNO: A Deep Recurrent Model for Exchangeable Data](https://arxiv.org/abs/1802.07535)
 
 ### Requirements
 
 The code was used with the following settings:
 
-- tensorflow-gpu==1.7.0 (CUDA 9.0, V9.0.176)
+- tensorflow-gpu==1.7.0
 - scikit-image==0.13.1
 
 ### Datasets
 
-Datasets should be stored in a 'data/' directory inside the project. Below we list files for every dataset that should be present.
+Datasets should be stored in a `data/` directory inside the project folder. Below we list files for every dataset that should be present.
 
 
 **MNIST** 
@@ -77,7 +76,7 @@ data/cifar/cifar-10-batches-py
 ### Training and testing
 
 There are configuration files in `config_rnn` for every model we used in the paper
-and a bunch of testing scripts. Below are some examples for Omniglot models.   
+and a bunch of testing scripts. Below are examples on how to train and test Omniglot models.   
 
 **Training (supports multi-gpu)**
 ```
@@ -101,17 +100,13 @@ CUDA_VISIBLE_DEVICES=0 python3 -m config_rnn.test_samples  --config_name bn2_omn
 CUDA_VISIBLE_DEVICES=0 python3 -m config_rnn.test_few_shot_omniglot  --config_name bn2_omniglot_tp --seq_len 2 --batch_size 20
 CUDA_VISIBLE_DEVICES=0 python3 -m config_rnn.test_few_shot_omniglot  --config_name bn2_omniglot_tp_ft_1s_20w --seq_len 2 --batch_size 20
 ```
-Here, batch_size = k and seq_len = n + 1 for a k-way n-shot setting.
+Here, `batch_size = k` and `seq_len = n + 1` to test the model in a *k*-way, *n*-shot setting.
 
 
-### Acknowledgements
+### Acknowledgments
 
-Most of the code for Real NVP was adapted from [github.com/taesung89/real-nvp](https://github.com/taesung89/real-nvp)
+Most of the code for Real NVP was adapted from [github.com/taesung89/real-nvp](https://github.com/taesung89/real-nvp). Weight normalization code was taken from [github.com/openai/pixel-cnn](https://github.com/openai/pixel-cnn).
 
-
-### References
-
-For any question, please feel free to contact Ira Korshunova (irene.korshunova@gmail.com)
 
 
 

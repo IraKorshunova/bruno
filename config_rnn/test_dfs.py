@@ -62,29 +62,15 @@ with tf.Session() as sess:
     for i, c, n, v in zip(idxs, corr[idxs], nu[idxs], var[idxs]):
         print(i, c, n, v)
     print('--------------------------')
-    print('VAR', np.min(var), np.max(var))
 
-    n_remained = []
-    eps_range = []
-    for t in np.arange(0, 0.9, 0.001):
-        nr = np.sum(corr > t)
-        if not n_remained:
-            n_remained.append(nr)
-            eps_range.append(t)
-        else:
-            if nr != n_remained[-1]:
-                n_remained.append(nr)
-                eps_range.append(t)
-        if t < 0.1:
-            print(t, n_remained[-1])
+    plt.figure(figsize=(4, 3))
+    plt.hist(nu, bins=100, normed=True)
+    plt.savefig(save_dir + '/nu_hist.png',
+                bbox_inches='tight', dpi=600)
 
-    fig = plt.figure(figsize=(4, 3))
-    plt.grid(True, which="both", ls="-", linewidth='0.2')
-    plt.plot(eps_range, n_remained, 'black', linewidth=1.)
-    plt.scatter(eps_range, n_remained, s=1.5, c='black')
-    plt.gca().set_xscale("log", nonposx='clip')
-    plt.gca().set_yscale("log", nonposy='clip')
-    plt.xlabel(r'$\epsilon$')
-    plt.ylabel('number of dimensions')
-    plt.savefig(save_dir + '/eps_plot.png',
+    plt.figure(figsize=(4, 3))
+    plt.scatter(nu, corr, s=1.5, c='black')
+    plt.xlabel('nu')
+    plt.ylabel('corr')
+    plt.savefig(save_dir + '/nu_corr.png',
                 bbox_inches='tight', dpi=600)

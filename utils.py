@@ -6,7 +6,6 @@ import sys
 import tarfile
 
 import numpy as np
-# import scipy.misc
 from six.moves import urllib
 
 
@@ -151,6 +150,7 @@ def process_omniglot_vinyals_split():
     """
     # this import is here so that it doesn't interact with matplotlib imports in other modules
     import skimage.io
+    import scipy.misc
 
     class_n = -1
 
@@ -208,7 +208,7 @@ def process_omniglot_vinyals_split():
                     x_test.append(img)
 
     valid_classes = np.asarray(valid_classes)
-    np.save(c, valid_classes)
+    np.save('data/omniglot_valid_classes', valid_classes)
 
     x_train = np.asarray(x_train)
     y_train = np.asarray(y_train)
