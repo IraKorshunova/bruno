@@ -95,7 +95,7 @@ class OmniglotExchSeqDataIterator(object):
             x_batch += noise_rng.uniform(size=x_batch.shape)
             yield x_batch, y_batch
 
-    def generate_diagonal_roll(self, rng=None, same_class=True, same_image=False, noise_rng=None):
+    def generate_diagonal_roll(self, rng=None, same_class=True, same_image=False, black_image=False, noise_rng=None):
         rng = self.rng if rng is None else rng
         noise_rng = self.rng if noise_rng is None else noise_rng
         batch_size = self.seq_len
@@ -113,6 +113,11 @@ class OmniglotExchSeqDataIterator(object):
                     sequence[0, k] = self.x[idxs[0]]
                 else:
                     sequence[0, k] = self.x[idxs[k]]
+
+            if black_image:
+                sequence[0, 0] *= 0.
+            if black_image and same_image:
+                sequence *= 0.
 
             if not same_class:
                 other_digits = list(self.classes)
@@ -394,7 +399,7 @@ class BaseExchSeqDataIterator(object):
             if not self.infinite:
                 break
 
-    def generate_diagonal_roll(self, same_class=True, same_image=False, rng=None, noise_rng=None):
+    def generate_diagonal_roll(self, same_class=True, same_image=False, black_image=False, rng=None, noise_rng=None):
         rng = self.rng if rng is None else rng
         noise_rng = self.rng if noise_rng is None else noise_rng
         batch_size = self.seq_len
@@ -413,6 +418,11 @@ class BaseExchSeqDataIterator(object):
                     sequence[0, k] = self.x[idxs[0]]
                 else:
                     sequence[0, k] = self.x[idxs[k]]
+
+            if black_image:
+                sequence[0, 0] *= 0.
+            if black_image and same_image:
+                sequence *= 0.
 
             if not same_class:
                 other_digits = list(self.digits)

@@ -11,7 +11,7 @@ The code was used with the following settings:
 
 ### Datasets
 
-Datasets should be stored in a `data/` directory inside the project folder. Below we list files for every dataset that should be present.
+Below we list files for every dataset that should be stored in a `data/` directory inside a project folder.
 
 
 **MNIST** 

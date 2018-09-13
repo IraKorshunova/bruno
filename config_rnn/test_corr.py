@@ -30,8 +30,11 @@ save_dir = utils.find_model_metadata('metadata/', args.config_name)
 experiment_id = os.path.dirname(save_dir)
 print('exp_id', experiment_id)
 
+target_path = save_dir + '/misc_plots'
+utils.autodir(target_path)
+
 # create the model
-model = tf.make_template('model', config.build_model, sampling_mode=True)
+model = tf.make_template('model', config.build_model, sampling_mode=False)
 x_in = tf.placeholder(tf.float32, shape=(config.sample_batch_size,) + config.obs_shape)
 model_output = model(x_in)
 
@@ -86,5 +89,13 @@ with tf.Session() as sess:
     plt.gca().set_yscale("log", nonposy='clip')
     plt.xlabel(r'$\epsilon$')
     plt.ylabel('number of dimensions')
-    plt.savefig(save_dir + '/eps_plot.png',
-                bbox_inches='tight', dpi=600)
+    plt.savefig(target_path + '/eps_plot.png',
+                bbox_inches='tight', dpi=1000)
+
+    plt.figure(figsize=(4, 3))
+    plt.scatter(nu, corr, s=1.5, c='black')
+    plt.xlabel('nu')
+    plt.ylabel('corr')
+    plt.gca().set_xscale("log", nonposx='clip')
+    plt.savefig(target_path + '/nu_corr.png',
+                bbox_inches='tight', dpi=1000)

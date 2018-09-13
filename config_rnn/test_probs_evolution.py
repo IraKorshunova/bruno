@@ -23,6 +23,7 @@ parser.add_argument('--mask_dims', type=int, default=0, help='keep the dimension
 parser.add_argument('--eps_corr', type=float, default=0., help='minimum correlation')
 parser.add_argument('--same_class', type=int, default=1, help='sequences from the same class')
 parser.add_argument('--same_image', type=int, default=0, help='sequences from the same image')
+parser.add_argument('--black_image', type=int, default=0, help='black image on diagonal')
 parser.add_argument('--n_batches', type=int, default=1000, help='how many batches to average over')
 args, _ = parser.parse_known_args()
 defaults.set_parameters(args)
@@ -40,6 +41,9 @@ config = importlib.import_module('%s.%s' % (configs_dir, args.config_name))
 save_dir = utils.find_model_metadata('metadata/', args.config_name)
 experiment_id = os.path.dirname(save_dir)
 print('exp_id', experiment_id)
+
+target_path = save_dir + '/misc_plots'
+utils.autodir(target_path)
 
 # create the model
 model = tf.make_template('model', config.build_model)
@@ -64,8 +68,8 @@ with tf.Session() as sess:
     scores = []
     prior_ll = []
     probs_x = []
-    for idx, x_batch in zip(batch_idxs, data_iter.generate_diagonal_roll(same_class=args.same_class, noise_rng=rng,
-                                                                         same_image=args.same_image)):
+    for idx, x_batch in zip(batch_idxs, data_iter.generate_diagonal_roll(
+            same_class=args.same_class, noise_rng=rng, same_image=args.same_image, black_image=args.black_image)):
         lp_x, lp_z, lp_prior_z = sess.run([log_probs, latent_log_probs, latent_log_probs_prior],
                                           feed_dict={x_in: x_batch})
         score = np.diag(lp_z - lp_prior_z)
@@ -75,7 +79,7 @@ with tf.Session() as sess:
 
     scores = np.asarray(scores)
     scores_mean = np.mean(scores, axis=0)
-    target_path = save_dir
+
     fig = plt.figure(figsize=(4, 3))
     plt.grid(True, which="both", ls="-", linewidth='0.2')
     plt.plot(range(len(scores_mean)), scores_mean, 'black', linewidth=1.)
@@ -83,8 +87,8 @@ with tf.Session() as sess:
     plt.xlabel('step')
     plt.ylabel('score')
     plt.savefig(
-        target_path + '/scores_plot_len%s_%s_class%s_img%s.png' % (
-            args.seq_len, args.set, args.same_class, args.same_image),
+        target_path + '/scores_plot_len%s_%s_class%s_img%s_black%s.png' % (
+            args.seq_len, args.set, args.same_class, args.same_image, args.black_image),
         bbox_inches='tight', dpi=600)
 
     prior_ll_mean = np.mean(prior_ll)
@@ -104,6 +108,6 @@ with tf.Session() as sess:
     plt.xlabel('step')
     plt.ylabel('LL')
     plt.savefig(
-        target_path + '/ll_plot_len%s_%s_class%s_img%s_%s.png' % (
-            args.seq_len, args.set, args.same_class, args.same_image, args.n_batches),
+        target_path + '/ll_plot_len%s_%s_class%s_img%s_black%s.png' % (
+            args.seq_len, args.set, args.same_class, args.same_image, args.black_image),
         bbox_inches='tight', dpi=600)

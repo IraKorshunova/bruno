@@ -1,7 +1,7 @@
 # BRUNO: A Deep Recurrent Model for Exchangeable Data
 
 
-Below are the negative log-likelihoods and bits per dimensions for the trained models (produced by the `test_nll.py` script). Due to tensorflow's randomness, these numbers could be a slightly different when one retrains a model. 
+Below are the negative log-likelihoods and bits per dimensions for the trained models (produced by the `test_nll.py` script).
  
 
 Model          | Test NLL(bpd)  | Test prior NLL(bpd) | Train NLL(bpd) | Train prior NLL(bpd)
