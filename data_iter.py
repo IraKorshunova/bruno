@@ -76,16 +76,17 @@ class OmniglotExchSeqDataIterator(object):
             if not self.infinite:
                 break
 
-    def generate_each_digit(self, same_image=False, noise_rng=np.random.RandomState(42)):
+    def generate_each_digit(self, same_image=False, noise_rng=np.random.RandomState(42), rng=None):
+        rng = self.rng if rng is None else rng
         for i in list(self.classes):
             x_batch = np.zeros((1,) + self.get_observation_size(), dtype='float32')
             y_batch = np.zeros((1, self.seq_len), dtype='float32')
 
-            idxs = self.y2idxs[i]
+            idxs = self.y2idxs[i].copy()
             assert len(idxs) >= self.seq_len
-            self.rng.shuffle(idxs)
+            rng.shuffle(idxs)
 
-            rotation = self.rng.randint(0, 4)
+            rotation = rng.randint(0, 4)
             for k in range(self.seq_len):
                 x_batch[0, k, :] = self.x[idxs[0], :] if same_image else self.x[idxs[k], :]
                 if self.augment:
@@ -357,14 +358,16 @@ class BaseExchSeqDataIterator(object):
             if not self.infinite:
                 break
 
-    def generate_each_digit(self, same_image=False, noise_rng=np.random.RandomState(42)):
+    def generate_each_digit(self, same_image=False, noise_rng=np.random.RandomState(42), rng=None):
+        rng = self.rng if rng is None else rng
+
         for i in range(10):
             x_batch = np.zeros((1,) + self.get_observation_size(), dtype='float32')
             y_batch = np.zeros((1, self.seq_len), dtype='float32')
 
-            idxs = self.y2idxs[i]
+            idxs = self.y2idxs[i].copy()
             assert len(idxs) >= self.seq_len
-            self.rng.shuffle(idxs)
+            rng.shuffle(idxs)
 
             for k in range(self.seq_len):
                 x_batch[0, k, :] = self.x[idxs[0], :] if same_image else self.x[idxs[k], :]

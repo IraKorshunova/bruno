@@ -154,6 +154,7 @@ def build_model(x, init=False, sampling_mode=False):
         log_probs = tf.stack(log_probs, axis=1)
         latent_log_probs = tf.stack(latent_log_probs, axis=1)
         latent_log_probs_prior = tf.stack(latent_log_probs_prior, axis=1)
+        predictive_vars = tf.stack(predictive_vars, axis=1)
 
         return log_probs, latent_log_probs, latent_log_probs_prior, z_vec, predictive_vars
 

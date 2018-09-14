@@ -82,6 +82,7 @@ def build_model(x, init=False, sampling_mode=False):
         z_samples = []
         latent_log_probs = []
         latent_log_probs_prior = []
+        predictive_vars = []
 
         if mask_dims:
             mask_dim = tf.greater(student_layer.corr, tf.ones_like(student_layer.corr) * eps_corr)
@@ -96,6 +97,7 @@ def build_model(x, init=False, sampling_mode=False):
                     z_sample = student_layer.sample(nr_samples=n_samples)
                     z_samples.append(z_sample)
                 else:
+                    predictive_vars.append(student_layer.current_distribution[1])
                     latent_log_prob = student_layer.get_log_likelihood(z_vec[:, i, :], mask_dim=mask_dim)
                     latent_log_probs.append(latent_log_prob)
 
@@ -136,8 +138,10 @@ def build_model(x, init=False, sampling_mode=False):
         log_probs = tf.stack(log_probs, axis=1)
         latent_log_probs = tf.stack(latent_log_probs, axis=1)
         latent_log_probs_prior = tf.stack(latent_log_probs_prior, axis=1)
+        predictive_vars = tf.stack(predictive_vars, axis=1)
 
-        return log_probs, latent_log_probs, latent_log_probs_prior, z_vec
+
+        return log_probs, latent_log_probs, latent_log_probs_prior, z_vec, predictive_vars
 
 
 def build_nvp_model():
