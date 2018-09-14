@@ -1,11 +1,13 @@
+import math
+
 import numpy as np
 import tensorflow as tf
 from scipy.linalg import block_diag
+
 import nn_extra_gauss
 import nn_extra_student
-from tests import utils_stats
-from tests.multivariate_student import multivariate_student
-import math
+from tests_gp_tp import utils_stats
+from tests_gp_tp.multivariate_student import multivariate_student
 
 rng = np.random.RandomState(41)
 import matplotlib
@@ -18,7 +20,7 @@ seq_len = 100
 p = 1
 recursive = True
 
-plot_name = '/nll_plot6.png'
+plot_name = '/nll_plot1.png'
 
 g_nu = np.ones((p,), dtype='float32') * 100
 g_var = np.ones((p,), dtype='float32') * 1.
@@ -100,7 +102,6 @@ for i in range(seq_len):
 
 probs_out_1 = np.asarray(probs_out)
 probs_out_gauss_1 = np.asarray(probs_out_gauss)
-target_path = '/mnt/storage/users/ikorshun/bruno/metadata/'
 fig = plt.figure(figsize=(4, 3))
 plt.grid(True, which="both", ls="-", linewidth='0.2')
 plt.plot(range(len(probs_out_1)), probs_out_1, 'black', linewidth=1., label='TP')
@@ -112,9 +113,7 @@ plt.ylabel('log-likelihood')
 plt.legend()
 plt.title('Model: ν=%s μ=%s v=%s ρ=%s \n Data: μ=%s v=%s  ρ=%s' % (g_nu[0], g_mu[0], g_var[0], g_cov[0], x_mu[0],
                                                                    x_var[0], x_cov[0]))
-plt.savefig(
-    target_path + plot_name,
-    bbox_inches='tight', dpi=600)
+plt.savefig('metadata/' + plot_name, bbox_inches='tight', dpi=600)
 
 print('---------------')  # numpy
 print('\n ****** NUMPY ******')

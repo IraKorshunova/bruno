@@ -3,7 +3,7 @@ import scipy
 import scipy.special
 import scipy.stats
 
-from tests.multivariate_student import multivariate_student
+from tests_gp_tp.multivariate_student import multivariate_student
 
 rng = np.random.RandomState(42)
 
