@@ -1,7 +1,6 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.framework.python.ops import arg_scope
-
 import data_iter
 import nn_extra_nvp
 import nn_extra_student
@@ -9,7 +8,7 @@ from config_rnn import defaults
 
 batch_size = 32
 sample_batch_size = 1
-n_samples = 4
+n_samples = 100
 rng = np.random.RandomState(42)
 rng_test = np.random.RandomState(317070)
 seq_len = defaults.seq_len

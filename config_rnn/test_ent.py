@@ -3,11 +3,9 @@ import importlib
 import json
 import os
 import time
-
 import matplotlib
 import numpy as np
 import tensorflow as tf
-
 import utils
 
 matplotlib.use('Agg')
@@ -64,51 +62,14 @@ with tf.Session() as sess:
 
     generator = data_iter.generate_each_digit(same_image=args.same_image)
     for i, (x_batch, y_batch) in enumerate(generator):
-        print("Generating samples...")
+        print(i, "Generating samples...")
         feed_dict = {x_in: x_batch}
-        sampled_xx, lp = sess.run([samples, log_probs], feed_dict)
-        print(np.sum(lp * np.exp(lp), axis=0))
+        lps = []
+        for j in range(100):
+            lp = sess.run(log_probs, feed_dict)
+            lps.append(lp)
+        lps = np.concatenate(lps, axis=0)
+        print(lps.shape)
+        print(-1. * np.mean(lps, axis=0))
         img_dim = config.obs_shape[1]
         n_channels = config.obs_shape[-1]
-
-        prior_image = np.zeros((1,) + x_batch[0, 0].shape) + 255.
-        x_seq = np.concatenate((prior_image, x_batch[0]))
-        x_plt = x_seq.swapaxes(0, 1)
-        x_plt = x_plt.reshape((img_dim, (config.seq_len + 1) * img_dim, n_channels))
-        if np.max(x_plt) >= 255.:
-            x_plt /= 256.
-
-        sample_plt = sampled_xx.reshape((config.n_samples, (config.seq_len + 1), img_dim, img_dim, n_channels))
-        sample_plt = sample_plt.swapaxes(1, 2)
-        sample_plt = sample_plt.reshape((config.n_samples * img_dim, (config.seq_len + 1) * img_dim, n_channels))
-        if np.max(sample_plt) >= 255.:
-            sample_plt /= 256.
-
-        plt.figure(figsize=(28. * config.obs_shape[0] / my_dpi, (img_dim + config.n_samples * img_dim) / my_dpi),
-                   dpi=my_dpi,
-                   frameon=False)
-        gs = gridspec.GridSpec(nrows=2, ncols=1, wspace=0.1, hspace=0.1, height_ratios=[1, config.n_samples])
-
-        ax0 = plt.subplot(gs[0])
-        img = x_plt
-        if n_channels == 1:
-            plt.imshow(img[:, :, 0], cmap='gray', interpolation='None')
-        else:
-            plt.imshow(img, interpolation='None')
-        plt.xticks([])
-        plt.yticks([])
-        plt.axis('off')
-
-        ax1 = plt.subplot(gs[1])
-        img = sample_plt
-        if n_channels == 1:
-            plt.imshow(img[:, :, 0], cmap='gray', interpolation='None')
-        else:
-            plt.imshow(img, interpolation='None')
-        plt.xticks([])
-        plt.yticks([])
-        plt.axis('off')
-
-        img_path = os.path.join(samples_dir, 'sample_%s_%s_%s.png' % (args.set, i, args.same_image))
-        plt.savefig(img_path, bbox_inches='tight', pad_inches=0)
-        plt.close('all')

@@ -43,8 +43,9 @@ class LogitLayer(Layer):
         return y, sum_log_det_jacobian
 
     def backward(self, y, z=None, sum_log_det_jacobian=None):
+        eps = 1e-12
         x = 1. / (1 + tf.exp(-y))
-        jac = tf.reduce_sum(tf.log(x) + tf.log(1 - x) - tf.log(1. - self.alpha), [1, 2, 3])
+        jac = tf.reduce_sum(tf.log(x + eps) + tf.log(1. - x + eps) - tf.log(1. - self.alpha), [1, 2, 3])
         x = (x - 0.5 * self.alpha) / (1 - self.alpha)
         sum_log_det_jacobian += jac
         return x, sum_log_det_jacobian
