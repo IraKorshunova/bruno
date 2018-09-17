@@ -11,7 +11,6 @@ from tests_gp_tp.multivariate_student import multivariate_student
 
 rng = np.random.RandomState(41)
 import matplotlib
-
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
@@ -20,9 +19,9 @@ seq_len = 100
 p = 1
 recursive = True
 
-plot_name = '/nll_plot1.png'
+plot_name = '/nll_plot0.png'
 
-g_nu = np.ones((p,), dtype='float32') * 100
+g_nu = np.ones((p,), dtype='float32') * 10000
 g_var = np.ones((p,), dtype='float32') * 1.
 g_corr = np.ones((p,), dtype='float32') * 0.01
 g_cov = g_corr * g_var
@@ -109,7 +108,7 @@ plt.scatter(range(len(probs_out_1)), probs_out_1, s=1.5, c='black')
 plt.plot(range(len(probs_out_gauss_1)), probs_out_gauss_1, 'red', linewidth=1., label='GP')
 plt.scatter(range(len(probs_out_gauss_1)), probs_out_gauss_1, s=1.5, c='red')
 plt.xlabel('step')
-plt.ylabel('log-likelihood')
+plt.ylabel('predictive log-probability')
 plt.legend()
 plt.title('Model: ν=%s μ=%s v=%s ρ=%s \n Data: μ=%s v=%s  ρ=%s' % (g_nu[0], g_mu[0], g_var[0], g_cov[0], x_mu[0],
                                                                    x_var[0], x_cov[0]))

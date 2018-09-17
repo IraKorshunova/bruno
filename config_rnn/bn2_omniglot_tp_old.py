@@ -78,11 +78,8 @@ def build_model(x, init=False, sampling_mode=False):
 
         log_det_jac = tf.zeros(x_bs_shape[0])
 
-        logit_layer = nn_extra_nvp.LogitLayer()
-        scale_layer = nn_extra_nvp.ScaleLayer()
-
-        y, log_det_jac = scale_layer.forward_and_jacobian(x_bs, log_det_jac)
-        y, log_det_jac = logit_layer.forward_and_jacobian(y, log_det_jac)
+        y, log_det_jac = nn_extra_nvp.dequantization_forward_and_jacobian(x_bs, log_det_jac)
+        y, log_det_jac = nn_extra_nvp.logit_forward_and_jacobian(y, log_det_jac)
 
         # construct forward pass
         z = None
@@ -101,6 +98,7 @@ def build_model(x, init=False, sampling_mode=False):
         z_samples = []
         latent_log_probs = []
         latent_log_probs_prior = []
+        predictive_vars = []
 
         if mask_dims:
             mask_dim = tf.greater(student_layer.corr, tf.ones_like(student_layer.corr) * eps_corr)
@@ -114,11 +112,8 @@ def build_model(x, init=False, sampling_mode=False):
                 if sampling_mode:
                     z_sample = student_layer.sample(nr_samples=n_samples)
                     z_samples.append(z_sample)
-
-                    latent_log_prob = student_layer.get_log_likelihood(z_sample[:, 0, :], mask_dim=mask_dim)
-                    latent_log_probs.append(latent_log_prob)
-
                 else:
+                    predictive_vars.append(student_layer.current_distribution[1])
                     latent_log_prob = student_layer.get_log_likelihood(z_vec[:, i, :], mask_dim=mask_dim)
                     latent_log_probs.append(latent_log_prob)
 
@@ -136,8 +131,6 @@ def build_model(x, init=False, sampling_mode=False):
             # one more sample after seeing the last element in the sequence
             z_sample = student_layer.sample(nr_samples=n_samples)
             z_samples.append(z_sample)
-            latent_log_prob = student_layer.get_log_likelihood(z_sample[:, 0, :], mask_dim=mask_dim)
-            latent_log_probs.append(latent_log_prob)
 
             z_samples = tf.concat(z_samples, 1)
             z_samples_shape = nn_extra_nvp.int_shape(z_samples)
@@ -145,35 +138,25 @@ def build_model(x, init=False, sampling_mode=False):
                                    (z_samples_shape[0] * z_samples_shape[1],
                                     z_shape[1], z_shape[2], z_shape[3]))  # (n_samples*seq_len, z_img_shape)
 
-            log_det_jac = tf.zeros(z_samples_shape[0] * z_samples_shape[1])
             for layer in reversed(nvp_dense_layers):
-                z_samples, log_det_jac, _ = layer.backward(z_samples, None, log_det_jac)
+                z_samples, _ = layer.backward(z_samples, None)
 
             x_samples = None
             for layer in reversed(nvp_layers):
-                x_samples, log_det_jac, z_samples = layer.backward(x_samples, z_samples, log_det_jac)
+                x_samples, z_samples = layer.backward(x_samples, z_samples)
 
-            x_samples, log_det_jac = logit_layer.backward(x_samples, None, log_det_jac)
-            x_samples, log_det_jac = scale_layer.backward(x_samples, None, log_det_jac)
+            # inverse logit
+            x_samples = 1. / (1 + tf.exp(-x_samples))
             x_samples = tf.reshape(x_samples,
                                    (z_samples_shape[0], z_samples_shape[1], x_shape[2], x_shape[3], x_shape[4]))
-
-            log_det_jac = tf.reshape(log_det_jac, (z_samples_shape[0], z_samples_shape[1]))
-            latent_log_probs = tf.stack(latent_log_probs, axis=1)
-
-            for i in range(seq_len):
-                log_prob = latent_log_probs[:, i] - log_det_jac[:, i]
-                log_probs.append(log_prob)
-
-            log_probs = tf.stack(log_probs, axis=1)
-
-            return x_samples, log_probs
+            return x_samples
 
         log_probs = tf.stack(log_probs, axis=1)
         latent_log_probs = tf.stack(latent_log_probs, axis=1)
         latent_log_probs_prior = tf.stack(latent_log_probs_prior, axis=1)
+        predictive_vars = tf.stack(predictive_vars, axis=1)
 
-        return log_probs, latent_log_probs, latent_log_probs_prior, z_vec
+        return log_probs, latent_log_probs, latent_log_probs_prior, z_vec, predictive_vars
 
 
 def build_nvp_model():

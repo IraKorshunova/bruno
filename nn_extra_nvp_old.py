@@ -24,47 +24,11 @@ def dequantization_forward_and_jacobian(x, sum_log_det_jacobians):
 
 
 class Layer():
-    def forward_and_jacobian(self, x, sum_log_det_jacobian, z):
+    def forward_and_jacobian(self, x, sum_log_det_jacobians, z):
         raise NotImplementedError(str(type(self)))
 
-    def backward(self, y, z, sum_log_det_jacobian=None):
+    def backward(self, y, z):
         raise NotImplementedError(str(type(self)))
-
-
-class LogitLayer(Layer):
-    def __init__(self, alpha=1e-5):
-        self.alpha = alpha
-
-    def forward_and_jacobian(self, x, sum_log_det_jacobian, z=None):
-        y = x * (1 - self.alpha) + self.alpha * 0.5
-        jac = tf.reduce_sum(-tf.log(y) - tf.log(1 - y) + tf.log(1. - self.alpha), [1, 2, 3])
-        y = tf.log(y) - tf.log(1. - y)
-        sum_log_det_jacobian += jac
-        return y, sum_log_det_jacobian
-
-    def backward(self, y, z=None, sum_log_det_jacobian=None):
-        x = 1. / (1 + tf.exp(-y))
-        jac = tf.reduce_sum(tf.log(x) + tf.log(1 - x) - tf.log(1. - self.alpha), [1, 2, 3])
-        x = (x - 0.5 * self.alpha) / (1 - self.alpha)
-        sum_log_det_jacobian += jac
-        return x, sum_log_det_jacobian
-
-
-class ScaleLayer(Layer):
-    def __init__(self, scale=256.):
-        self.scale = scale
-
-    def forward_and_jacobian(self, x, sum_log_det_jacobian, z=None):
-        x_shape = int_shape(x)
-        y = x / self.scale
-        sum_log_det_jacobian -= tf.log(self.scale) * x_shape[1] * x_shape[2] * x_shape[3]
-        return y, sum_log_det_jacobian
-
-    def backward(self, y, z=None, sum_log_det_jacobian=None):
-        y_shape = int_shape(y)
-        x = y * self.scale
-        sum_log_det_jacobian += tf.log(self.scale) * y_shape[1] * y_shape[2] * y_shape[3]
-        return x, sum_log_det_jacobian
 
 
 class CouplingLayerConv(Layer):
@@ -185,7 +149,7 @@ class CouplingLayerConv(Layer):
 
             return y, sum_log_det_jacobians, z
 
-    def backward(self, y, z, sum_log_det_jacobians=None):
+    def backward(self, y, z):
         with tf.variable_scope(self.name, reuse=True):
             ys = int_shape(y)
             b = self.get_mask(ys, self.mask_type)
@@ -193,12 +157,7 @@ class CouplingLayerConv(Layer):
             y1 = y * b
             l, m = self.function_s_t(y1, b)
             x = y1 + tf.multiply(y * (1. - b) - m, tf.exp(-l))
-            if sum_log_det_jacobians is not None:
-                log_det_jacobian = -1. * tf.reduce_sum(l, [1, 2, 3])
-                sum_log_det_jacobians += log_det_jacobian
-                return x, sum_log_det_jacobians, z
-            else:
-                return x, z
+            return x, z
 
 
 class CouplingLayerDense(CouplingLayerConv):
@@ -301,7 +260,7 @@ class SqueezingLayer(Layer):
 
         return y, sum_log_det_jacobians, z
 
-    def backward(self, y, z, sum_log_det_jacobians=None):
+    def backward(self, y, z):
         ys = int_shape(y)
         assert ys[3] % 4 == 0
         x = tf.depth_to_space(y, 2)
@@ -309,7 +268,7 @@ class SqueezingLayer(Layer):
         if z is not None:
             z = tf.depth_to_space(z, 2)
 
-        return x, sum_log_det_jacobians, z
+        return x, z
 
 
 class FactorOutLayer(Layer):
@@ -334,7 +293,7 @@ class FactorOutLayer(Layer):
 
         return x, sum_log_det_jacobians, z
 
-    def backward(self, y, z, sum_log_det_jacobians=None):
+    def backward(self, y, z):
 
         # At scale 0, 1/2 of the original dimensions are factored out
         # At scale 1, 1/4 of the original dimensions are factored out
@@ -357,7 +316,7 @@ class FactorOutLayer(Layer):
         else:
             x = new_y
 
-        return x, sum_log_det_jacobians, z
+        return x, z
 
 
 class Orthogonal(object):
