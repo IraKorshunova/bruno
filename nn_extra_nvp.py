@@ -7,27 +7,11 @@ def int_shape(x):
     return list(map(int, x.get_shape()))
 
 
-def logit_forward_and_jacobian(x, sum_log_det_jacobians):
-    alpha = 1e-5
-    y = x * (1 - alpha) + alpha * 0.5
-    jac = tf.reduce_sum(-tf.log(y) - tf.log(1 - y), [1, 2, 3])
-    y = tf.log(y) - tf.log(1. - y)
-    sum_log_det_jacobians += jac
-    return y, sum_log_det_jacobians
-
-
-def dequantization_forward_and_jacobian(x, sum_log_det_jacobians):
-    x_shape = int_shape(x)
-    y = x / 256.0
-    sum_log_det_jacobians -= tf.log(256.0) * x_shape[1] * x_shape[2] * x_shape[3]
-    return y, sum_log_det_jacobians
-
-
 class Layer():
-    def forward_and_jacobian(self, x, sum_log_det_jacobian, z):
+    def forward_and_jacobian(self, x, z, sum_log_det_jacobian):
         raise NotImplementedError(str(type(self)))
 
-    def backward(self, y, z, sum_log_det_jacobian=None):
+    def backward(self, y, z, sum_log_det_jacobian):
         raise NotImplementedError(str(type(self)))
 
 
@@ -35,16 +19,16 @@ class LogitLayer(Layer):
     def __init__(self, alpha=1e-5):
         self.alpha = alpha
 
-    def forward_and_jacobian(self, x, sum_log_det_jacobian, z=None):
+    def forward_and_jacobian(self, x, z, sum_log_det_jacobian):
         y = x * (1 - self.alpha) + self.alpha * 0.5
-        jac = tf.reduce_sum(-tf.log(y) - tf.log(1 - y) + tf.log(1. - self.alpha), [1, 2, 3])
+        jac = tf.reduce_sum(-tf.log(y) - tf.log(1. - y) + tf.log(1. - self.alpha), [1, 2, 3])
         y = tf.log(y) - tf.log(1. - y)
         sum_log_det_jacobian += jac
         return y, sum_log_det_jacobian
 
-    def backward(self, y, z=None, sum_log_det_jacobian=None):
+    def backward(self, y, z, sum_log_det_jacobian):
         eps = 1e-12
-        x = 1. / (1 + tf.exp(-y))
+        x = 1. / (1. + tf.exp(-y))
         jac = tf.reduce_sum(tf.log(x + eps) + tf.log(1. - x + eps) - tf.log(1. - self.alpha), [1, 2, 3])
         x = (x - 0.5 * self.alpha) / (1 - self.alpha)
         sum_log_det_jacobian += jac
@@ -55,13 +39,13 @@ class ScaleLayer(Layer):
     def __init__(self, scale=256.):
         self.scale = scale
 
-    def forward_and_jacobian(self, x, sum_log_det_jacobian, z=None):
+    def forward_and_jacobian(self, x, z, sum_log_det_jacobian):
         x_shape = int_shape(x)
         y = x / self.scale
         sum_log_det_jacobian -= tf.log(self.scale) * x_shape[1] * x_shape[2] * x_shape[3]
         return y, sum_log_det_jacobian
 
-    def backward(self, y, z=None, sum_log_det_jacobian=None):
+    def backward(self, y, z, sum_log_det_jacobian):
         y_shape = int_shape(y)
         x = y * self.scale
         sum_log_det_jacobian += tf.log(self.scale) * y_shape[1] * y_shape[2] * y_shape[3]
@@ -172,7 +156,7 @@ class CouplingLayerConv(Layer):
                 b = tf.concat([black, white], 3)
         return b
 
-    def forward_and_jacobian(self, x, sum_log_det_jacobians, z):
+    def forward_and_jacobian(self, x, z, sum_log_det_jacobian):
         with tf.variable_scope(self.name):
             xs = int_shape(x)
             b = self.get_mask(xs, self.mask_type)
@@ -182,11 +166,11 @@ class CouplingLayerConv(Layer):
             l, m = self.function_s_t(x1, b)
             y = x1 + tf.multiply(1. - b, x * tf.exp(l) + m)
             log_det_jacobian = tf.reduce_sum(l, [1, 2, 3])
-            sum_log_det_jacobians += log_det_jacobian
+            sum_log_det_jacobian += log_det_jacobian
 
-            return y, sum_log_det_jacobians, z
+            return y, z, sum_log_det_jacobian
 
-    def backward(self, y, z, sum_log_det_jacobians=None):
+    def backward(self, y, z, sum_log_det_jacobian):
         with tf.variable_scope(self.name, reuse=True):
             ys = int_shape(y)
             b = self.get_mask(ys, self.mask_type)
@@ -194,12 +178,10 @@ class CouplingLayerConv(Layer):
             y1 = y * b
             l, m = self.function_s_t(y1, b)
             x = y1 + tf.multiply(y * (1. - b) - m, tf.exp(-l))
-            if sum_log_det_jacobians is not None:
-                log_det_jacobian = -1. * tf.reduce_sum(l, [1, 2, 3])
-                sum_log_det_jacobians += log_det_jacobian
-                return x, sum_log_det_jacobians, z
-            else:
-                return x, z
+
+            log_det_jacobian = -1. * tf.reduce_sum(l, [1, 2, 3])
+            sum_log_det_jacobian += log_det_jacobian
+            return x, z, sum_log_det_jacobian
 
 
 class CouplingLayerDense(CouplingLayerConv):
@@ -293,16 +275,16 @@ class SqueezingLayer(Layer):
     def __init__(self, name="Squeeze"):
         self.name = name
 
-    def forward_and_jacobian(self, x, sum_log_det_jacobians, z):
+    def forward_and_jacobian(self, x, z, sum_log_det_jacobian):
         xs = int_shape(x)
         assert xs[1] % 2 == 0 and xs[2] % 2 == 0
         y = tf.space_to_depth(x, 2)
         if z is not None:
             z = tf.space_to_depth(z, 2)
 
-        return y, sum_log_det_jacobians, z
+        return y, z, sum_log_det_jacobian
 
-    def backward(self, y, z, sum_log_det_jacobians=None):
+    def backward(self, y, z, sum_log_det_jacobian):
         ys = int_shape(y)
         assert ys[3] % 4 == 0
         x = tf.depth_to_space(y, 2)
@@ -310,7 +292,7 @@ class SqueezingLayer(Layer):
         if z is not None:
             z = tf.depth_to_space(z, 2)
 
-        return x, sum_log_det_jacobians, z
+        return x, z, sum_log_det_jacobian
 
 
 class FactorOutLayer(Layer):
@@ -318,7 +300,7 @@ class FactorOutLayer(Layer):
         self.scale = scale
         self.name = name
 
-    def forward_and_jacobian(self, x, sum_log_det_jacobians, z):
+    def forward_and_jacobian(self, x, z, sum_log_det_jacobian):
 
         xs = int_shape(x)
         split = xs[3] // 2
@@ -333,9 +315,9 @@ class FactorOutLayer(Layer):
         else:
             z = new_z
 
-        return x, sum_log_det_jacobians, z
+        return x, z, sum_log_det_jacobian
 
-    def backward(self, y, z, sum_log_det_jacobians=None):
+    def backward(self, y, z, sum_log_det_jacobian):
 
         # At scale 0, 1/2 of the original dimensions are factored out
         # At scale 1, 1/4 of the original dimensions are factored out
@@ -358,7 +340,7 @@ class FactorOutLayer(Layer):
         else:
             x = new_y
 
-        return x, sum_log_det_jacobians, z
+        return x, z, sum_log_det_jacobian
 
 
 class Orthogonal(object):

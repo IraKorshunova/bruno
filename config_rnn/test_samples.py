@@ -45,7 +45,7 @@ model = tf.make_template('model', config.build_model, sampling_mode=True)
 all_params = tf.trainable_variables()
 
 x_in = tf.placeholder(tf.float32, shape=(config.sample_batch_size,) + config.obs_shape)
-samples = model(x_in, sampling_mode=True)
+samples = model(x_in, sampling_mode=True)[0]
 
 saver = tf.train.Saver()
 
@@ -64,7 +64,7 @@ with tf.Session() as sess:
 
     generator = data_iter.generate_each_digit(same_image=args.same_image)
     for i, (x_batch, y_batch) in enumerate(generator):
-        print("Generating samples...")
+        print("Generating samples", i)
         feed_dict = {x_in: x_batch}
         sampled_xx = sess.run(samples, feed_dict)
         img_dim = config.obs_shape[1]

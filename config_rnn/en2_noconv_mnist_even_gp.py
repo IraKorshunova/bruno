@@ -71,11 +71,14 @@ def build_model(x, init=False, sampling_mode=False):
 
         log_det_jac = tf.zeros(x_bs_shape[0])
 
-        y, log_det_jac = nn_extra_nvp.dequantization_forward_and_jacobian(x_bs, log_det_jac)
-        y, log_det_jac = nn_extra_nvp.logit_forward_and_jacobian(y, log_det_jac)
+        logit_layer = nn_extra_nvp.LogitLayer()
+        scale_layer = nn_extra_nvp.ScaleLayer()
+
+        y, log_det_jac = scale_layer.forward_and_jacobian(x_bs, None, log_det_jac)
+        y, log_det_jac = logit_layer.forward_and_jacobian(y, None, log_det_jac)
 
         for layer in nvp_dense_layers:
-            y, log_det_jac, _ = layer.forward_and_jacobian(y, log_det_jac, None)
+            y, _, log_det_jac = layer.forward_and_jacobian(y, None, log_det_jac)
 
         z_shape = nn_extra_nvp.int_shape(y)
         z_vec = tf.reshape(y, (x_shape[0], x_shape[1], -1))
@@ -98,6 +101,10 @@ def build_model(x, init=False, sampling_mode=False):
                 if sampling_mode:
                     z_sample = student_layer.sample(nr_samples=n_samples)
                     z_samples.append(z_sample)
+
+                    latent_log_prob = student_layer.get_log_likelihood(z_sample[:, 0, :])
+                    latent_log_probs.append(latent_log_prob)
+
                 else:
                     latent_log_prob = student_layer.get_log_likelihood(z_vec[:, i, :], mask_dim=mask_dim)
                     latent_log_probs.append(latent_log_prob)
@@ -118,19 +125,34 @@ def build_model(x, init=False, sampling_mode=False):
             z_samples.append(z_sample)
 
             z_samples = tf.concat(z_samples, 1)
+
+            latent_log_prob = student_layer.get_log_likelihood(z_sample[:, 0, :])
+            latent_log_probs.append(latent_log_prob)
+
             z_samples_shape = nn_extra_nvp.int_shape(z_samples)
             z_samples = tf.reshape(z_samples,
                                    (z_samples_shape[0] * z_samples_shape[1],
                                     z_shape[1], z_shape[2], z_shape[3]))  # (bs*seq_len, z_img_shape)
 
+            log_det_jac = tf.zeros(z_samples_shape[0] * z_samples_shape[1])
             for layer in reversed(nvp_dense_layers):
-                z_samples, _ = layer.backward(z_samples, None)
+                z_samples, _, log_det_jac = layer.backward(z_samples, None, log_det_jac)
 
-            # inverse logit
-            x_samples = 1. / (1 + tf.exp(-z_samples))
+            x_samples, log_det_jac = logit_layer.backward(z_samples, None, log_det_jac)
+            x_samples, log_det_jac = scale_layer.backward(x_samples, None, log_det_jac)
+
             x_samples = tf.reshape(x_samples,
                                    (z_samples_shape[0], z_samples_shape[1], x_shape[2], x_shape[3], x_shape[4]))
-            return x_samples
+            log_det_jac = tf.reshape(log_det_jac, (z_samples_shape[0], z_samples_shape[1]))
+            latent_log_probs = tf.stack(latent_log_probs, axis=1)
+
+            for i in range(seq_len + 1):
+                log_prob = latent_log_probs[:, i] - log_det_jac[:, i]
+                log_probs.append(log_prob)
+
+            log_probs = tf.stack(log_probs, axis=1)
+
+            return x_samples, log_probs
 
         log_probs = tf.stack(log_probs, axis=1)
         latent_log_probs = tf.stack(latent_log_probs, axis=1)
