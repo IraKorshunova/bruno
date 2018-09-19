@@ -96,6 +96,25 @@ class OmniglotExchSeqDataIterator(object):
             x_batch += noise_rng.uniform(size=x_batch.shape)
             yield x_batch, y_batch
 
+    def generate_one_digit(self, y_class, same_image=False, noise_rng=np.random.RandomState(42), rng=None):
+        rng = self.rng if rng is None else rng
+        idxs = self.y2idxs[y_class]
+        assert len(idxs) >= self.seq_len
+
+        for i in range(len(idxs)):
+            x_batch = np.zeros((1,) + self.get_observation_size(), dtype='float32')
+            y_batch = np.zeros((1, self.seq_len), dtype='float32')
+
+            random_idxs = idxs.copy()
+            rng.shuffle(random_idxs)
+
+            for k in range(self.seq_len):
+                x_batch[0, k, :] = self.x[idxs[i], :] if same_image else self.x[random_idxs[k], :]
+                y_batch[0, k] = y_class
+
+            x_batch += noise_rng.uniform(size=x_batch.shape)
+            yield x_batch, y_batch
+
     def generate_diagonal_roll(self, rng=None, same_class=True, same_image=False, black_image=False, noise_rng=None):
         rng = self.rng if rng is None else rng
         noise_rng = self.rng if noise_rng is None else noise_rng

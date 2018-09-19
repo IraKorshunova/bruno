@@ -27,7 +27,7 @@ print('input args:\n', json.dumps(vars(args), indent=4, separators=(',', ':'))) 
 
 # -----------------------------------------------------------------------------
 
-def plot_samples(sampled_xx, x_batch, same_image):
+def plot_samples(sampled_xx, x_batch, same_image, idx):
     img_dim = config.obs_shape[1]
     n_channels = config.obs_shape[-1]
 
@@ -69,7 +69,8 @@ def plot_samples(sampled_xx, x_batch, same_image):
     plt.yticks([])
     plt.axis('off')
 
-    img_path = os.path.join(save_dir, 'sample_%s_%s_%s.png' % (args.set, i, same_image))
+    img_path = os.path.join(save_dir, 'sample_%s_%s.png' % (idx, same_image))
+    print('saved', img_path)
     plt.savefig(img_path, bbox_inches='tight', pad_inches=0)
     plt.close('all')
 
@@ -101,42 +102,40 @@ elif args.set == 'train':
 else:
     raise ValueError('wrong set')
 
+n_batches = 100
+
 with tf.Session() as sess:
     begin = time.time()
     ckpt_file = save_dir + 'params.ckpt'
     print('restoring parameters from', ckpt_file)
     saver.restore(sess, tf.train.latest_checkpoint(save_dir))
 
-    generator = data_iter.generate_each_digit(same_image=False)
-    generator_same = data_iter.generate_each_digit(same_image=True)
-    for i in range(383):
-        if i != 382:
-            next(generator)
-            next(generator_same)
-            continue
-        (x_batch, y_batch) = next(generator)
-        print(i, "Generating samples...")
-        print(y_batch)
-        feed_dict = {x_in: x_batch}
-        lps = []
-        for j in range(1000):
-            lp = sess.run(log_probs, feed_dict)
-            lps.append(lp)
-            # plot_samples(samples_xx, x_batch, 0)
-        lps = np.concatenate(lps, axis=0)
-        print(lps.shape)
-        print(-1. * np.mean(lps, axis=0))
+    generator = data_iter.generate_one_digit(y_class=1582, same_image=False)
+    generator_same = data_iter.generate_one_digit(y_class=1582, same_image=True)
 
-        (x_batch, y_batch) = next(generator_same)
-        print(i, "Generating samples...")
-        print(y_batch)
+    for i, (x_batch, y_batch) in enumerate(generator_same):
+        print("Same inputs")
         feed_dict = {x_in: x_batch}
         lps = []
-        for j in range(1000):
+        for j in range(n_batches):
             lp = sess.run(log_probs, feed_dict)
             lps.append(lp)
-            # plot_samples(samples_xx, x_batch, 1)
+        samples_xx = sess.run(samples, feed_dict)
+        plot_samples(samples_xx, x_batch, 1, i)
         lps = np.concatenate(lps, axis=0)
         print(lps.shape)
         print(-1. * np.mean(lps, axis=0))
         print('---------------------------------------------------------')
+
+    for i, (x_batch, y_batch) in enumerate(generator):
+        print("Different inputs")
+        lps = []
+        feed_dict = {x_in: x_batch}
+        for j in range(n_batches):
+            lp = sess.run(log_probs, feed_dict)
+            lps.append(lp)
+        samples_xx = sess.run(samples, feed_dict)
+        plot_samples(samples_xx, x_batch, 0, i)
+        lps = np.concatenate(lps, axis=0)
+        print(lps.shape)
+        print(-1. * np.mean(lps, axis=0))
