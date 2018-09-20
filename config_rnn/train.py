@@ -90,7 +90,7 @@ for i in range(args.nr_gpu):
         with tf.variable_scope('gpu_%d' % i):
             with tf.variable_scope('train'):
                 log_probs = model(xs[i])[0]
-                train_losses.append(tf.check_numerics(config.loss(log_probs), 'loss has nans'))
+                train_losses.append(config.loss(log_probs))
                 grads.append(tf.gradients(train_losses[i], all_params))
 
 # add gradients together and get training updates
@@ -189,6 +189,9 @@ with tf.Session() as sess:
             feed_dict.update({xs[i]: xfs[i] for i in range(args.nr_gpu)})
             l, _ = sess.run([train_loss, train_step], feed_dict)
             train_iter_losses.append(l)
+            if np.isnan(l):
+                print('Loss is NaN')
+                sys.exit(0)
 
             if (iteration + 1) % print_every == 0:
                 avg_train_loss = np.mean(train_iter_losses)

@@ -64,7 +64,7 @@ tf_student_grad_scale = tf.placeholder(tf.float32, shape=[])
 
 with tf.variable_scope('train'):
     log_probs = model(x_in)[0]
-    train_loss = tf.check_numerics(config.loss(log_probs), 'loss has nans')
+    train_loss = config.loss(log_probs)
     grads = tf.gradients(train_loss, all_params)
 
 student_params = ['prior_nu', 'prior_mean', 'prior_var', 'prior_corr']
@@ -128,6 +128,9 @@ with tf.Session() as sess:
         feed_dict = {tf_lr: lr, tf_student_grad_scale: student_grad_scale, x_in: x_batch}
         l, _ = sess.run([train_loss, train_step], feed_dict)
         train_iter_losses.append(l)
+        if np.isnan(l):
+            print('Loss is NaN')
+            sys.exit(0)
 
         current_time = time.clock()
         if (iteration + 1) % print_every == 0:
