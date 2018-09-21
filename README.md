@@ -105,7 +105,9 @@ Here, `batch_size = k` and `seq_len = n + 1` to test the model in a *k*-way, *n*
 
 ### Acknowledgments
 
-Most of the code for Real NVP was adapted from [github.com/taesung89/real-nvp](https://github.com/taesung89/real-nvp). Weight normalization code was taken from [github.com/openai/pixel-cnn](https://github.com/openai/pixel-cnn).
+Most of the code for Real NVP was adapted from [github.com/taesung89/real-nvp](https://github.com/taesung89/real-nvp). 
+
+Weight normalization code was taken from [github.com/openai/pixel-cnn](https://github.com/openai/pixel-cnn).
 
 
 

@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
-parser.add_argument('-c', '--config_name', type=str, required=True, help='Configuration name')
+parser.add_argument('--config_name', type=str, required=True, help='Configuration name')
 args, unknown = parser.parse_known_args()
 print('input args:\n', json.dumps(vars(args), indent=4, separators=(',', ':')))
 # -----------------------------------------------------------------------------

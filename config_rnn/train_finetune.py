@@ -12,11 +12,7 @@ import logger
 
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
-parser.add_argument('-c', '--config_name', type=str, default='nvp_1', help='Configuration name')
-parser.add_argument('-t', '--save_interval', type=int, default=2,
-                    help='Every how many epochs to write checkpoint/samples?')
-parser.add_argument('-r', '--load_params', type=int, default=0,
-                    help='Restore training from previous model checkpoint? 1 = Yes, 0 = No')
+parser.add_argument('--config_name', type=str, default='nvp_1', help='Configuration name')
 args = parser.parse_args()
 print('input args:\n', json.dumps(vars(args), indent=4, separators=(',', ':')))
 # -----------------------------------------------------------------------------

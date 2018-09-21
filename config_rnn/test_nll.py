@@ -12,7 +12,7 @@ from config_rnn import defaults
 
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
-parser.add_argument('-c', '--config_name', type=str, required=True, help='Configuration name')
+parser.add_argument('--config_name', type=str, required=True, help='Configuration name')
 parser.add_argument('--seq_len', type=int, default=20, help='sequence length')
 parser.add_argument('--n_batches', type=int, default=10000, help='number of batches')
 args, _ = parser.parse_known_args()
