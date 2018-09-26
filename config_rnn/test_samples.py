@@ -60,8 +60,6 @@ elif args.set == 'train':
 else:
     raise ValueError('wrong set')
 
-rng = np.random.RandomState(42)
-
 with tf.Session() as sess:
     begin = time.time()
     ckpt_file = save_dir + 'params.ckpt'
@@ -99,7 +97,7 @@ with tf.Session() as sess:
         sample_plt = sample_plt / 256. if np.max(sample_plt) >= 2. else sample_plt
         sample_plt = np.clip(sample_plt, 0., 1.)
 
-        plt.figure(figsize=(28. * config.obs_shape[0] / my_dpi, (img_dim + config.n_samples * img_dim) / my_dpi),
+        plt.figure(figsize=(img_dim * config.obs_shape[0] / my_dpi, (img_dim + config.n_samples * img_dim) / my_dpi),
                    dpi=my_dpi,
                    frameon=False)
         gs = gridspec.GridSpec(nrows=2, ncols=1, wspace=0.1, hspace=0.1, height_ratios=[1, config.n_samples])
@@ -124,6 +122,7 @@ with tf.Session() as sess:
         plt.yticks([])
         plt.axis('off')
 
-        img_path = os.path.join(samples_dir, 'sample_%s_%s_%s_%s.png' % (args.set, i, args.same_image, args.plot_n))
-        plt.savefig(img_path, bbox_inches='tight', pad_inches=0)
+        img_path = os.path.join(samples_dir, 'sample_%s_%s_%s' % (args.set, i, args.same_image))
+        img_path += '.png' if args.plot_n == 0 else '_%s.png' % args.plot_n
+        plt.savefig(img_path, bbox_inches='tight', pad_inches=0, format='png', dpi=my_dpi)
         plt.close('all')
