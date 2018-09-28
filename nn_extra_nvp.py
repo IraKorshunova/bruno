@@ -1,3 +1,7 @@
+"""
+Much of the Real NVP and weightnorm code was adapted from https://github.com/taesung89/real-nvp
+and https://github.com/openai/pixel-cnn.
+"""
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.framework.python.ops import add_arg_scope

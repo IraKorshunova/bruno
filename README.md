@@ -1,6 +1,11 @@
 # BRUNO: A Deep Recurrent Model for Exchangeable Data
 
-This is an official implementation for reproducing the results of [BRUNO: A Deep Recurrent Model for Exchangeable Data](https://arxiv.org/abs/1802.07535)
+This is an official code for reproducing main results from our paper:
+
+I. Korshunova, J. Degrave, F. Huszár, Y. Gal, A. Gretton, J. Dambre<br>
+**BRUNO: A Deep Recurrent Model for Exchangeable Data** <br>
+[arxiv.org/abs/1802.07535](https://arxiv.org/abs/1802.07535)
+
 
 ### Requirements
 
@@ -102,14 +107,9 @@ CUDA_VISIBLE_DEVICES=0 python3 -m config_rnn.test_few_shot_omniglot  --config_na
 ```
 Here, `batch_size = k` and `seq_len = n + 1` to test the model in a *k*-way, *n*-shot setting.
 
+### Notes
 
-### Acknowledgments
-
-Most of the code for Real NVP was adapted from [github.com/taesung89/real-nvp](https://github.com/taesung89/real-nvp). 
-
-Weight normalization code was taken from [github.com/openai/pixel-cnn](https://github.com/openai/pixel-cnn).
-
-
+The code is far from being commented, so if you have any questions or you find a bug, please send me an email at `irene.korshunoa@gmail.com`
 
 
 
