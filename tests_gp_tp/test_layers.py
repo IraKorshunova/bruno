@@ -1,5 +1,3 @@
-import math
-
 import numpy as np
 import tensorflow as tf
 from scipy.linalg import block_diag
@@ -7,10 +5,10 @@ from scipy.linalg import block_diag
 import nn_extra_gauss
 import nn_extra_student
 from tests_gp_tp import utils_stats
-from tests_gp_tp.multivariate_student import multivariate_student
 
 rng = np.random.RandomState(41)
 import matplotlib
+
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
@@ -19,9 +17,9 @@ seq_len = 100
 p = 1
 recursive = True
 
-plot_name = '/nll_plot0.png'
+plot_name = '/nll_plot1.png'
 
-g_nu = np.ones((p,), dtype='float32') * 10000
+g_nu = np.ones((p,), dtype='float32') * 100
 g_var = np.ones((p,), dtype='float32') * 1.
 g_corr = np.ones((p,), dtype='float32') * 0.01
 g_cov = g_corr * g_var
@@ -122,7 +120,7 @@ print(x1.shape)
 probs_k1, probs_k2 = [], []
 for k in range(p):
     probs_k1.append(
-        multivariate_student.pdf(x1[0, k:k + 1], phi=g_mu[k:k + 1], K=g_var[None, k:k + 1], nu=g_nu[k]))
+        utils_stats.mvt_pdf(x1[0, k:k + 1], phi=g_mu[k:k + 1], K=g_var[None, k:k + 1], nu=g_nu[k]))
 prob_1 = np.prod(probs_k1)
 print('step', 0)
 print('prob', np.log(prob_1))
@@ -150,11 +148,11 @@ for j in range(2, seq_len + 1):
     for i in range(p):
         x_2n = x1[:j, i:i + 1].T
         K = create_covariance_matrix(j, 1, g_cov[i], g_var[i])
-        pp_joint_n2 = multivariate_student.pdf(x_2n, phi=np.zeros_like(x_2n) + g_mu[i], K=K, nu=g_nu[i])
+        pp_joint_n2 = utils_stats.mvt_pdf(x_2n, phi=np.zeros_like(x_2n) + g_mu[i], K=K, nu=g_nu[i])
 
         x_1n = x1[:j - 1, i:i + 1].T
         K = create_covariance_matrix(j - 1, 1, g_cov[i], g_var[i])
-        pp_joint_n1 = multivariate_student.pdf(x_1n, phi=np.zeros_like(x_1n) + g_mu[i], K=K, nu=g_nu[i])
+        pp_joint_n1 = utils_stats.mvt_pdf(x_1n, phi=np.zeros_like(x_1n) + g_mu[i], K=K, nu=g_nu[i])
 
         probs_i1.append(pp_joint_n2 / pp_joint_n1)
 
@@ -178,19 +176,3 @@ for j in range(2, seq_len + 1):
     assert np.isclose(np.log(np.prod(probs_i1)), probs_out_gauss[j - 1][0], atol=1e-3, rtol=1e-03)
     print('x_step', x1[j - 1, :])
     print('---------------')
-
-
-def student_pdf_1d(X, mu, var, nu):
-    num = math.gamma((1. + nu) / 2.) * pow(
-        1. + (1. / (nu - 2)) * (1. / var * (X - mu) ** 2), -(1. + nu) / 2.)
-    denom = math.gamma(nu / 2.) * np.sqrt((nu - 2) * math.pi * var)
-    return num / denom
-
-
-def gauss_pdf_1d(X, mu, var):
-    return 1. / np.sqrt(2. * np.pi * var) * np.exp(- (X - mu) ** 2 / (2. * var))
-
-
-print(student_pdf_1d(-0.35260147, g_mu[0], g_var[0], g_nu[0]))
-print(gauss_pdf_1d(-0.35260147, g_mu[0], g_var[0]))
-print(sum(probs_out), sum(probs_out_gauss))
