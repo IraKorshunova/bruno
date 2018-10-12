@@ -1,6 +1,6 @@
 # BRUNO: A Deep Recurrent Model for Exchangeable Data
 
-This is an official code for reproducing main results from our paper:
+This is an official code for reproducing main results from our NIPS'18 paper:
 
 I. Korshunova, J. Degrave, F. Huszár, Y. Gal, A. Gretton, J. Dambre<br>
 **BRUNO: A Deep Recurrent Model for Exchangeable Data** <br>
