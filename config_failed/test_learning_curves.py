@@ -44,8 +44,11 @@ for config, label, color in zip(config_names, labels, colors):
     plt.plot(x_range, losses, color, linewidth=1.5, label=label)
 
 plt.ylim(1500, 10000)
-plt.xlabel('iteration', fontsize=20)
-plt.ylabel('NLL', fontsize=20)
+plt.xlabel('iteration', fontsize=20, labelpad=0)
+plt.ylabel('NLL', fontsize=20, labelpad=0)
+plt.tick_params(axis='both', which='major', labelsize=15)
+plt.xticks(fontsize=15)
+plt.yticks(fontsize=15)
 
 plt.legend(loc='upper right', fontsize=18)
 plt.savefig(target_path + '/train_loss_%s_%s.png' % (config_names[0], config_names[1]),
