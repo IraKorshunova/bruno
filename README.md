@@ -109,7 +109,7 @@ Here, `batch_size = k` and `seq_len = n + 1` to test the model in a *k*-way, *n*
 
 ### Notes
 
-The code is far from being commented, so if you have any questions or you find a bug, please send me an email at `irene.korshunoa@gmail.com`
+The code is far from being commented, so if you have any questions or you find a bug, please send me an email at `irene.korshunova@gmail.com`
 
 
 
