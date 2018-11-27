@@ -11,6 +11,7 @@ I. Korshunova, J. Degrave, F. Huszár, Y. Gal, A. Gretton, J. Dambre<br>
 
 The code was used with the following settings:
 
+
 - tensorflow-gpu==1.7.0
 - scikit-image==0.13.1
 

@@ -17,14 +17,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--config_name', type=str, required=True, help='Configuration name')
 parser.add_argument('--nr_gpu', type=int, default=1, help='How many GPUs to distribute the training across?')
 parser.add_argument('--resume', type=int, default=0, help='Resume training from a checkpoint?')
-parser.add_argument('--tf_seed', type=int, default=0, help='tf rng seed')
 args = parser.parse_args()
 print('input args:\n', json.dumps(vars(args), indent=4, separators=(',', ':')))
 assert args.nr_gpu == len(''.join(filter(str.isdigit, os.environ["CUDA_VISIBLE_DEVICES"])))
 # -----------------------------------------------------------------------------
 np.random.seed(seed=42)
 tf.reset_default_graph()
-tf.set_random_seed(args.tf_seed)
+tf.set_random_seed(0)
 
 # config
 configs_dir = __file__.split('/')[-2]
@@ -58,7 +57,8 @@ model = tf.make_template('model', config.build_model)
 
 # run once for data dependent initialization of parameters
 x_init = tf.placeholder(tf.float32, shape=(config.batch_size,) + config.obs_shape)
-init_pass = model(x_init, init=True)[0]
+y_init = tf.placeholder(tf.float32, shape=(config.batch_size,) + config.label_shape)
+init_pass = model(x_init, y_init, init=True)[0]
 
 all_params = tf.trainable_variables()
 n_parameters = 0
@@ -72,21 +72,24 @@ print('Number of parameters', n_parameters)
 
 # get loss gradients over multiple GPUs
 xs = []
+ys = []
 grads = []
 train_losses = []
 
 # evaluation in case we want to validate
 x_in_eval = tf.placeholder(tf.float32, shape=(config.batch_size,) + config.obs_shape)
-log_probs = model(x_in_eval)[0]
+y_in_eval = tf.placeholder(tf.float32, shape=(config.batch_size,) + config.label_shape)
+log_probs = model(x_in_eval, y_in_eval)[0]
 eval_loss = config.eval_loss(log_probs) if hasattr(config, 'eval_loss') else config.loss(log_probs)
 
 for i in range(args.nr_gpu):
     xs.append(tf.placeholder(tf.float32, shape=(config.batch_size / args.nr_gpu,) + config.obs_shape))
+    ys.append(tf.placeholder(tf.float32, shape=(config.batch_size / args.nr_gpu,) + config.label_shape))
     with tf.device('/gpu:%d' % i):
         # train
         with tf.variable_scope('gpu_%d' % i):
             with tf.variable_scope('train'):
-                log_probs = model(xs[i])[0]
+                log_probs = model(xs[i], ys[i])[0]
                 train_losses.append(config.loss(log_probs))
                 grads.append(tf.gradients(train_losses[i], all_params))
 
@@ -126,7 +129,7 @@ with tf.device('/gpu:0'):
                 global_step=None, name='rmsprop')
         else:
             print('using adam')
-            train_step = tf.train.AdamOptimizer(learning_rate=tf_lr, beta1=0.95, beta2=0.9995).apply_gradients(
+            train_step = tf.train.AdamOptimizer(learning_rate=tf_lr).apply_gradients(
                 grads_and_vars=grads_and_vars,
                 global_step=None, name='adam')
 
@@ -157,8 +160,9 @@ with tf.Session() as sess:
         print('restoring parameters from', ckpt_file)
         saver.restore(sess, tf.train.latest_checkpoint(save_dir))
 
-    prev_time = time.time()
-    for iteration, x_batch in zip(batch_idxs, train_data_iter.generate()):
+    prev_time = time.clock()
+    for iteration, (x_batch, y_batch) in zip(batch_idxs, train_data_iter.generate()):
+
 
         if hasattr(config, 'learning_rate_schedule') and iteration in config.learning_rate_schedule:
             lr = np.float32(config.learning_rate_schedule[iteration])
@@ -178,12 +182,14 @@ with tf.Session() as sess:
         if iteration == 0:
             print('initializing the model...')
             sess.run(initializer)
-            init_loss = sess.run(init_pass, {x_init: x_batch})
+            init_loss = sess.run(init_pass, {x_init: x_batch, y_init: y_batch})
             sess.graph.finalize()
         else:
             xfs = np.split(x_batch, args.nr_gpu)
+            yfs = np.split(y_batch, args.nr_gpu)
             feed_dict = {tf_lr: lr, tf_student_grad_scale: student_grad_scale}
             feed_dict.update({xs[i]: xfs[i] for i in range(args.nr_gpu)})
+            feed_dict.update({ys[i]: yfs[i] for i in range(args.nr_gpu)})
             l, _ = sess.run([train_loss, train_step], feed_dict)
             train_iter_losses.append(l)
             if np.isnan(l):
@@ -197,30 +203,6 @@ with tf.Session() as sess:
                 print('%d/%d train_loss=%6.8f bits/value=%.3f' % (
                     iteration + 1, config.max_iter, avg_train_loss, avg_train_loss / config.ndim / np.log(2.)))
                 corr = config.student_layer.corr.eval().flatten()
-
-            if hasattr(config, 'validate_every') and (iteration + 1) % config.validate_every == 0:
-                print('\n Validating ...')
-                losses = []
-                rng = np.random.RandomState(42)
-                for _, x_valid_batch in zip(range(0, config.n_valid_batches),
-                                            config.valid_data_iter.generate(rng)):
-                    feed_dict = {x_in_eval: x_valid_batch}
-                    l = sess.run([eval_loss], feed_dict)
-                    losses.append(l)
-                avg_loss = np.mean(np.asarray(losses), axis=0)
-                losses_eval_valid.append(avg_loss)
-                print('valid loss', avg_loss)
-
-                losses = []
-                rng = np.random.RandomState(42)
-                for _, x_valid_batch in zip(range(0, config.n_valid_batches * 10),
-                                            train_data_iter.generate(rng)):
-                    feed_dict = {x_in_eval: x_valid_batch}
-                    l = sess.run([eval_loss], feed_dict)
-                    losses.append(l)
-                avg_loss = np.mean(np.asarray(losses), axis=0)
-                losses_eval_train.append(avg_loss)
-                print('train loss', avg_loss)
 
             if (iteration + 1) % config.save_every == 0:
                 current_time = time.time()

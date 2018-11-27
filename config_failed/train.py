@@ -6,14 +6,11 @@ import pickle
 import sys
 import time
 
-import matplotlib
 import numpy as np
 import tensorflow as tf
 
 import logger
 import utils
-
-matplotlib.use('Agg')
 
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
