@@ -12,26 +12,20 @@ import utils
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from config_norb import defaults
+from config_conditional import defaults
 
 my_dpi = 1000
 
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
 parser.add_argument('--config_name', type=str, required=True, help='Configuration name')
-parser.add_argument('--set', type=str, default='test', help='Test or train part')
-parser.add_argument('--same_image', type=int, default=0, help='Same image as input')
-parser.add_argument('--n_samples', type=int, default=4, help='Number of sequences')
-parser.add_argument('--seq_len', type=int, default=2, help='Sequence length')
-parser.add_argument('--n_context', type=int, default=0, help='Context length')
-parser.add_argument('--rotation', type=int, default=0, help='Rotation to various angles')
-parser.add_argument('--random_classes', type=int, default=1, help='Random class order')
 parser.add_argument('--n_row', type=int, default=3, help='Number of rows')
 parser.add_argument('--n_col', type=int, default=17, help='Number of cols')
-parser.add_argument('--sort', type=int, default=0, help='Sort by angle')
 args, _ = parser.parse_known_args()
+args.n_context = 0  # don't change this
+args.seq_len = 2  # don't change this
 defaults.set_parameters(args)
-print('input args:\n', json.dumps(vars(args), indent=4, separators=(',', ':')))  # pretty print args
+print('input args:\n', json.dumps(vars(args), indent=4, separators=(',', ':')))
 # -----------------------------------------------------------------------------
 rng = np.random.RandomState(42)
 tf.set_random_seed(42)
@@ -55,27 +49,11 @@ print('seq_len', config.seq_len)
 model = tf.make_template('model', config.build_model, sampling_mode=True)
 all_params = tf.trainable_variables()
 
-x_in = tf.placeholder(tf.float32, shape=(config.n_samples,) + config.obs_shape)
-y_label = tf.placeholder(tf.float32, shape=(config.n_samples,) + config.label_shape)
+x_in = tf.placeholder(tf.float32, shape=(1,) + config.obs_shape)
+y_label = tf.placeholder(tf.float32, shape=(1,) + config.label_shape)
 samples = model(x_in, y_label)
 
 saver = tf.train.Saver()
-
-if args.set == 'test':
-    data_iter = config.test_data_iter
-elif args.set == 'train':
-    data_iter = config.train_data_iter
-elif args.set == 'train_chunk':
-    data_iter = config.train_data_iter
-else:
-    raise ValueError('wrong set')
-
-data_iter.batch_size = config.n_samples
-if args.rotation:
-    generator = data_iter.generate_each_digit_rotation(n_context=args.n_context, random_classes=args.random_classes)
-else:
-    generator = data_iter.generate_each_digit(random_classes=args.random_classes,
-                                              rng=np.random.RandomState(317070))
 
 with tf.Session() as sess:
     begin = time.time()
@@ -86,21 +64,19 @@ with tf.Session() as sess:
     prior_samples = []
     for j in range(args.n_row):
         for k in range(args.n_col):
-            x_batch = np.zeros((config.n_samples,) + config.obs_shape)[:config.n_samples]
-            y_batch = np.zeros((config.n_samples,) + config.label_shape)[:config.n_samples]
-            y_batch[0, 0] = data_iter.process_angle(k * 20)
-            y_batch[0, 1] = data_iter.process_angle(k * 20)
+            x_batch = np.zeros((1,) + config.obs_shape)
+            y_batch = np.zeros((1,) + config.label_shape)
+            y_batch[0, 0] = config.train_data_iter.process_angle(k * 20)
+            y_batch[0, 1] = config.train_data_iter.process_angle(k * 20)
             feed_dict = {x_in: x_batch, y_label: y_batch}
 
-            angle = int(round(data_iter.deprocess_angle(y_batch[0, 0, :2])))
+            angle = int(round(config.train_data_iter.deprocess_angle(y_batch[0, 0, :2])))
             print(angle)
             sampled_x = sess.run(samples, feed_dict)[0, 0]
             prior_samples.append(sampled_x)
 
     prior_samples = np.asarray(prior_samples)
-    print(prior_samples.shape)
     prior_samples = np.reshape(prior_samples, (args.n_row, args.n_col) + prior_samples.shape[1:])
-    print(prior_samples.shape)
     img_dim = config.obs_shape[1]
     n_channels = config.obs_shape[-1]
 
@@ -110,7 +86,7 @@ with tf.Session() as sess:
     sample_plt = sample_plt / 256. if np.max(sample_plt) >= 2. else sample_plt
     sample_plt = np.clip(sample_plt, 0., 1.)
 
-    plt.figure(figsize=(10* img_dim * args.n_col / my_dpi, 10* img_dim * args.n_row / my_dpi),
+    plt.figure(figsize=(10 * img_dim * args.n_col / my_dpi, 10 * img_dim * args.n_row / my_dpi),
                dpi=my_dpi,
                frameon=False)
 

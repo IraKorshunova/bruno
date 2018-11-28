@@ -3,17 +3,19 @@ import importlib
 import json
 import os
 import time
+
 import numpy as np
 import tensorflow as tf
+
 import utils
-from config_norb import defaults
+from config_conditional import defaults
 
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser()
 parser.add_argument('--config_name', type=str, required=True, help='Configuration name')
-parser.add_argument('--seq_len', type=int, default=16, help='sequence length')
-parser.add_argument('--n_batches', type=int, default=1000, help='number of batches')
-parser.add_argument('--n_context', type=int, default=4, help='Context length')
+parser.add_argument('--seq_len', type=int, default=16, help='Sequence length')
+parser.add_argument('--n_context', type=int, default=1, help='Context length')
+parser.add_argument('--n_batches', type=int, default=1000, help='Number of batches')
 args, _ = parser.parse_known_args()
 defaults.set_parameters(args)
 print('input args:\n', json.dumps(vars(args), indent=4, separators=(',', ':')))
@@ -55,37 +57,23 @@ with tf.Session() as sess:
     data_iter.batch_size = 1
 
     probs = []
-    probs_prior = []
     for _, (x_batch, y_batch) in zip(batch_idxs, data_iter.generate(noise_rng=rng)):
         l = sess.run(log_probs, feed_dict={x_in: x_batch, y_label: y_batch})
         probs.append(l)
-        probs_prior.append(l[:, 0])
     avg_loss = -1. * np.mean(probs)
     bits_per_dim = avg_loss / np.log(2.) / config.ndim
     print('Test Loss %.3f' % avg_loss)
     print('Bits per dim %.3f' % bits_per_dim)
-    avg_loss_prior = -np.mean(probs_prior)
-    bits_per_dim_prior = avg_loss_prior / np.log(2.) / config.ndim
-    print('Test loss under prior %.3f' % avg_loss_prior)
-    test_losses = (avg_loss, bits_per_dim, avg_loss_prior, bits_per_dim_prior)
 
     # train
     data_iter = config.train_data_iter
     data_iter.batch_size = 1
 
     probs = []
-    probs_prior = []
     for _, (x_batch, y_batch) in zip(batch_idxs, data_iter.generate(noise_rng=rng)):
         l = sess.run(log_probs, feed_dict={x_in: x_batch, y_label: y_batch})
         probs.append(l)
-        probs_prior.append(l[:, 0])
     avg_loss = -1. * np.mean(probs)
     bits_per_dim = avg_loss / np.log(2.) / config.ndim
     print('Train Loss %.3f' % avg_loss)
     print('Bits per dim %.3f' % bits_per_dim)
-    avg_loss_prior = -np.mean(probs_prior)
-    bits_per_dim_prior = avg_loss_prior / np.log(2.) / config.ndim
-    print('Train loss under prior %.3f' % avg_loss_prior)
-    train_losses = (avg_loss, bits_per_dim, avg_loss_prior, bits_per_dim_prior)
-
-    print('%.3f(%.3f) | %.3f(%.3f) | %.3f(%.3f) | %.3f(%.3f)' % (test_losses + train_losses))

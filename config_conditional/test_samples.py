@@ -53,8 +53,8 @@ print('seq_len', config.seq_len)
 model = tf.make_template('model', config.build_model, sampling_mode=True)
 all_params = tf.trainable_variables()
 
-x_in = tf.placeholder(tf.float32, shape=(config.n_samples,) + config.obs_shape)
-y_label = tf.placeholder(tf.float32, shape=(config.n_samples,) + config.label_shape)
+x_in = tf.placeholder(tf.float32, shape=(1,) + config.obs_shape)
+y_label = tf.placeholder(tf.float32, shape=(1,) + config.label_shape)
 samples = model(x_in, y_label)
 
 saver = tf.train.Saver()
@@ -66,7 +66,7 @@ elif args.set == 'train':
 else:
     raise ValueError('wrong set')
 
-data_iter.batch_size = config.n_samples
+data_iter.batch_size = 1
 generator = data_iter.generate_each_digit(random_classes=args.random_classes,
                                           rng=np.random.RandomState(317070))
 
@@ -77,8 +77,6 @@ with tf.Session() as sess:
     saver.restore(sess, tf.train.latest_checkpoint(save_dir))
 
     for i, (x_batch, y_batch) in enumerate(generator):
-        x_batch = x_batch[:config.n_samples]
-        y_batch = y_batch[:config.n_samples]
         print(i, "Generating samples...")
         feed_dict = {x_in: x_batch, y_label: y_batch}
         sampled_xx = []

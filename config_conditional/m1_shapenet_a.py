@@ -30,7 +30,7 @@ print('label shape', label_shape)
 ndim = np.prod(obs_shape[1:])
 corr_init = np.ones((ndim,), dtype='float32') * 0.1
 
-optimizer = 'rmsprop'
+optimizer = 'adam'
 learning_rate = 0.001
 lr_decay = 0.999995
 scale_student_grad = 1.

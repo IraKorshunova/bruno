@@ -1,50 +1,43 @@
 # Conditional BRUNO
 
-This is an official code for reproducing the ShapeNet experiments from our NIPS'18 Bayesian Deep Learning workshop paper:
+### ShapeNet dataset
 
-I. Korshunova, Y. Gal, J. Dambre, A. Gretton<br>
-**Conditional BRUNO: A Deep Recurrent Process for Exchangeable Labelled Data** 
-
-
-### Requirements
-
-The code was used with the following settings:
-
-- tensorflow-gpu==1.7.0
-
-
-### Shapenet dataset
-
-   1. Download the two shapenet dataset files 02691156.zip and 03001627.zip
+   *1.* Download the two shapenet dataset files 02691156.zip and 03001627.zip
    from https://drive.google.com/drive/folders/1x4EZFEE_bT9lvBu25ZnsMtV4LNKhYaG5?usp=sharing.
-   2. In the data directory create a new directory called shapenet and unzip the 2 files:
-
+   
+   *2.* In `/data` create a new directory called `shapenet` and unzip the 2 files:
  ```
  data/shapenet/02691156
  data/shapenet/03001627
 ```
 
-
-    3. Run `utils_conditional.py` to process the images to get 2 .npy files:
+   *3.* Run `python3 utils_conditional.py` to get the two .npy files:
     
 ```
- data/shapenet/ 
- data/shapenet/
+ data/shapenet/shapenet_chairs.npy
+ data/shapenet/shapenet_planes.npy
 ```  
 
+Note: most of the code for ShapeNet is taken from Versa: [github.com/Gordonjo/versa](https://github.com/Gordonjo/versa), which is also a nice meta-learning model.
 
 ### Training and testing
 
-There are configuration files in `config_rnn` for every model we used in the paper
-and a bunch of testing scripts. Below are examples on how to train and test Omniglot models.   
+There is a configuration file `m1_shapenet.py` in `config_conditional` for the model used in the paper.
+Below are the examples on how to train and test this model.   
 
-**Training (supports multi-gpu)**
+**Training (supports multiple gpus)**
 ```
-CUDA_VISIBLE_DEVICES=0,1 python3 -m config_rnn.train  --config_name bn2_omniglot_tp --nr_gpu 2
+CUDA_VISIBLE_DEVICES=0,1 python3 -m config_conditional.train  --config_name m1_shapenet --nr_gpu 2
 ```
 
 **Generating samples**
 
 ```
-CUDA_VISIBLE_DEVICES=0 python3 -m config_rnn.test_samples  --config_name bn2_omniglot_tp_ft_1s_20w
+CUDA_VISIBLE_DEVICES=0 python3 -m config_conditional.test_samples  --config_name m1_shapenet --seq_len 13 --n_context 1
+```
+
+**Generating samples from the prior**
+
+```
+CUDA_VISIBLE_DEVICES=0 python3 -m config_conditional.test_samples_prior  --config_name m1_shapenet
 ```

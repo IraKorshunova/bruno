@@ -1,17 +1,22 @@
 # BRUNO: A Deep Recurrent Model for Exchangeable Data
 
-This is an official code for reproducing main results from our NIPS'18 paper:
+This is an official code for reproducing the main results from our NIPS'18 paper:
 
 I. Korshunova, J. Degrave, F. Huszár, Y. Gal, A. Gretton, J. Dambre<br>
 **BRUNO: A Deep Recurrent Model for Exchangeable Data** <br>
 [arxiv.org/abs/1802.07535](https://arxiv.org/abs/1802.07535)
+
+and from our NIPS'18 Bayesian Deep Learning workshop paper:
+
+I. Korshunova, Y. Gal, J. Dambre, A. Gretton<br>
+**Conditional BRUNO: A Deep Recurrent Process for Exchangeable Labelled Data** 
 
 
 ### Requirements
 
 The code was used with the following settings:
 
-
+- python3
 - tensorflow-gpu==1.7.0
 - scikit-image==0.13.1
 
@@ -84,7 +89,7 @@ data/cifar/cifar-10-batches-py
 There are configuration files in `config_rnn` for every model we used in the paper
 and a bunch of testing scripts. Below are examples on how to train and test Omniglot models.   
 
-**Training (supports multi-gpu)**
+**Training (supports multiple gpus)**
 ```
 CUDA_VISIBLE_DEVICES=0,1 python3 -m config_rnn.train  --config_name bn2_omniglot_tp --nr_gpu 2
 ```
