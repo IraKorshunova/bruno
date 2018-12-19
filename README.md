@@ -9,7 +9,8 @@ I. Korshunova, J. Degrave, F. Huszár, Y. Gal, A. Gretton, J. Dambre<br>
 and from our NIPS'18 Bayesian Deep Learning workshop paper:
 
 I. Korshunova, Y. Gal, J. Dambre, A. Gretton<br>
-**Conditional BRUNO: A Deep Recurrent Process for Exchangeable Labelled Data** 
+**Conditional BRUNO: A Deep Recurrent Process for Exchangeable Labelled Data**
+[bayesiandeeplearning.org/2018/papers/40.pdf](http://bayesiandeeplearning.org/2018/papers/40.pdf) 
 
 
 ### Requirements
@@ -113,9 +114,19 @@ CUDA_VISIBLE_DEVICES=0 python3 -m config_rnn.test_few_shot_omniglot  --config_na
 ```
 Here, `batch_size = k` and `seq_len = n + 1` to test the model in a *k*-way, *n*-shot setting.
 
-### Notes
 
-The code is far from being commented, so if you have any questions or you find a bug, please send me an email at `irene.korshunova@gmail.com`
+### Citation
+
+Please cite our paper when using this code for your research. If you have any questions, please send me an email at `irene.korshunova@gmail.com`
+
+```
+@incollection{bruno2018,
+    title = {BRUNO: A Deep Recurrent Model for Exchangeable Data},
+    author = {Korshunova, Iryna and Degrave, Jonas and Huszar, Ferenc and Gal, Yarin and Gretton, Arthur and Dambre, Joni},
+    booktitle = {Advances in Neural Information Processing Systems 31},
+    year = {2018}
+}
+```
 
 
 
