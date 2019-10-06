@@ -20,6 +20,8 @@ The code was used with the following settings:
 - python3
 - tensorflow-gpu==1.7.0
 - scikit-image==0.13.1
+- numpy==1.14.2
+- scipy==1.0.0
 
 ### Datasets
 
